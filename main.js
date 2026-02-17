@@ -1,8 +1,9 @@
-/* Trunk or Treat: The Boop Chase (Phaser 3 MVP)
-   - Kid-safe: caught = BOOP + respawn
-   - 6 rooms, 5 Trick Tokens to win
-   - Mechanics: hiding, noise meter, distractions
-*/
+/* ==========================================================
+   Trunk or Treat: The Boop Chase (Polished Phaser 3)
+   - Better visuals (spotlight lighting, UI panels, particles)
+   - More fun (gumdrops recharge distractions, hide meter)
+   - Kid-safe: caught = BOOP + respawn, no harm
+   ========================================================== */
 
 const W = 960;
 const H = 540;
@@ -35,57 +36,65 @@ const PLAYER_LINES = [
   "Last token! Then I’m outta here!",
 ];
 
+// Difficulty tuning (same idea, slightly juiced)
 const DIFFICULTIES = {
   easy: {
     label: "Tiny Toot (Easy)",
-    playerWalk: 160,
-    playerRun: 240,
-    runNoisePerSec: 18,
+    playerWalk: 170,
+    playerRun: 260,
+    accel: 1200,
+    drag: 900,
+    runNoisePerSec: 16,
     walkNoisePerSec: 0,
     quietRecoverPerSec: 22,
-    hideRecoverPerSec: 45,
+    hideRecoverPerSec: 48,
     elephantPatrolSpeed: 105,
     elephantChaseSpeed: 165,
-    sightRange: 220,
+    sightRange: 225,
     hearThreshold: 55,
-    sniffChancePerSec: 0.25,
+    sniffChancePerSec: 0.22,
     investigateSeconds: 2.4,
+    hideSettleTime: 0.55,
   },
   normal: {
     label: "Spooky Scoot (Normal)",
-    playerWalk: 150,
-    playerRun: 230,
-    runNoisePerSec: 22,
+    playerWalk: 160,
+    playerRun: 245,
+    accel: 1300,
+    drag: 950,
+    runNoisePerSec: 21,
     walkNoisePerSec: 1,
     quietRecoverPerSec: 18,
-    hideRecoverPerSec: 40,
+    hideRecoverPerSec: 42,
     elephantPatrolSpeed: 120,
     elephantChaseSpeed: 185,
-    sightRange: 250,
+    sightRange: 255,
     hearThreshold: 45,
-    sniffChancePerSec: 0.32,
+    sniffChancePerSec: 0.30,
     investigateSeconds: 2.8,
+    hideSettleTime: 0.65,
   },
   hard: {
     label: "Mega Trunk (Hard)",
-    playerWalk: 145,
-    playerRun: 225,
+    playerWalk: 155,
+    playerRun: 235,
+    accel: 1400,
+    drag: 1050,
     runNoisePerSec: 26,
     walkNoisePerSec: 2,
     quietRecoverPerSec: 14,
-    hideRecoverPerSec: 36,
+    hideRecoverPerSec: 38,
     elephantPatrolSpeed: 135,
     elephantChaseSpeed: 210,
-    sightRange: 275,
+    sightRange: 280,
     hearThreshold: 40,
-    sniffChancePerSec: 0.4,
+    sniffChancePerSec: 0.40,
     investigateSeconds: 3.2,
+    hideSettleTime: 0.75,
   },
 };
 
-// Room layout: simple rectangles for obstacles/hide spots + doors to next/prev.
-// Tokens: total 5 across rooms.
-// Items: 5 silly unlocks (one each in certain rooms).
+// Rooms (same structure; gumdrops spawn automatically)
 const ROOMS = [
   {
     key: "Candy Porch",
@@ -97,7 +106,7 @@ const ROOMS = [
       { x: 480, y: 520, w: 780, h: 30 },
       { x: 60,  y: 270, w: 30,  h: 420 },
       { x: 900, y: 270, w: 30,  h: 420 },
-      { x: 510, y: 300, w: 200, h: 30 }, // porch rail
+      { x: 510, y: 300, w: 200, h: 30 },
     ],
     hides: [
       { x: 220, y: 420, w: 80, h: 60, label: "Pumpkin Planter" },
@@ -109,6 +118,11 @@ const ROOMS = [
       { type: "item",  id: "goggles", x: 320, y: 160 },
     ],
     gags: [],
+    decor: [
+      { x: 220, y: 460, emoji: "🎃" },
+      { x: 760, y: 460, emoji: "🎃" },
+      { x: 520, y: 240, emoji: "🕸️" },
+    ],
   },
   {
     key: "Wobble Hallway",
@@ -120,7 +134,7 @@ const ROOMS = [
       { x: 480, y: 470, w: 820, h: 30 },
       { x: 60,  y: 270, w: 30,  h: 420 },
       { x: 900, y: 270, w: 30,  h: 420 },
-      { x: 480, y: 270, w: 60,  h: 220 }, // center coat rack "island"
+      { x: 480, y: 270, w: 60,  h: 220 },
     ],
     hides: [
       { x: 160, y: 130, w: 90, h: 70, label: "Curtains" },
@@ -130,15 +144,17 @@ const ROOMS = [
     doors: [
       { to: 0, x: 30,  y: 270, w: 40, h: 140, label: "← Porch" },
       { to: 2, x: 930, y: 270, w: 40, h: 140, label: "→ Kitchen" },
-      // Shortcut door becomes active when cape unlocked
       { to: 4, x: 480, y: 50, w: 160, h: 40, label: "Secret Hatch (Cape)", requires: "cape" },
     ],
     collectibles: [
       { type: "token", id: "token_2", x: 720, y: 400 },
       { type: "item",  id: "tracker", x: 240, y: 270 },
     ],
-    gags: [
-      { type: "portraitSneezes", x: 760, y: 260, w: 90, h: 120 },
+    gags: [{ type: "portraitSneezes", x: 760, y: 260, w: 90, h: 120 }],
+    decor: [
+      { x: 220, y: 120, emoji: "🖼️" },
+      { x: 820, y: 120, emoji: "🧥" },
+      { x: 520, y: 420, emoji: "🕸️" },
     ],
   },
   {
@@ -151,8 +167,8 @@ const ROOMS = [
       { x: 480, y: 470, w: 820, h: 30 },
       { x: 60,  y: 270, w: 30,  h: 420 },
       { x: 900, y: 270, w: 30,  h: 420 },
-      { x: 480, y: 260, w: 300, h: 40 },  // counter
-      { x: 260, y: 340, w: 120, h: 40 },  // table
+      { x: 480, y: 260, w: 300, h: 40 },
+      { x: 260, y: 340, w: 120, h: 40 },
     ],
     hides: [
       { x: 820, y: 410, w: 90, h: 70, label: "Pantry" },
@@ -167,6 +183,11 @@ const ROOMS = [
       { type: "item",  id: "spray", x: 560, y: 420 },
     ],
     gags: [],
+    decor: [
+      { x: 260, y: 310, emoji: "🥣" },
+      { x: 720, y: 160, emoji: "🍭" },
+      { x: 820, y: 420, emoji: "🚪" },
+    ],
   },
   {
     key: "Toy Tomb Playroom",
@@ -178,7 +199,7 @@ const ROOMS = [
       { x: 480, y: 470, w: 820, h: 30 },
       { x: 60,  y: 270, w: 30,  h: 420 },
       { x: 900, y: 270, w: 30,  h: 420 },
-      { x: 520, y: 320, w: 260, h: 160 }, // block castle maze
+      { x: 520, y: 320, w: 260, h: 160 },
     ],
     hides: [
       { x: 220, y: 140, w: 100, h: 70, label: "Toy Tent" },
@@ -189,11 +210,12 @@ const ROOMS = [
       { to: 2, x: 30,  y: 270, w: 40, h: 140, label: "← Kitchen" },
       { to: 4, x: 930, y: 270, w: 40, h: 140, label: "→ Bathroom" },
     ],
-    collectibles: [
-      { type: "item",  id: "banana", x: 740, y: 420 },
-    ],
-    gags: [
-      { type: "toyChestBalloons", x: 760, y: 130, w: 120, h: 120 },
+    collectibles: [{ type: "item", id: "banana", x: 740, y: 420 }],
+    gags: [{ type: "toyChestBalloons", x: 760, y: 130, w: 120, h: 120 }],
+    decor: [
+      { x: 240, y: 120, emoji: "🧸" },
+      { x: 760, y: 120, emoji: "🧸" },
+      { x: 520, y: 330, emoji: "🧱" },
     ],
   },
   {
@@ -206,8 +228,8 @@ const ROOMS = [
       { x: 480, y: 470, w: 820, h: 30 },
       { x: 60,  y: 270, w: 30,  h: 420 },
       { x: 900, y: 270, w: 30,  h: 420 },
-      { x: 480, y: 270, w: 120, h: 260 }, // mirror column
-      { x: 260, y: 210, w: 120, h: 120 }, // sink area
+      { x: 480, y: 270, w: 120, h: 260 },
+      { x: 260, y: 210, w: 120, h: 120 },
     ],
     hides: [
       { x: 780, y: 420, w: 110, h: 70, label: "Shower Curtain" },
@@ -221,8 +243,11 @@ const ROOMS = [
       { type: "token", id: "token_4", x: 720, y: 420 },
       { type: "item",  id: "cape", x: 260, y: 140 },
     ],
-    gags: [
-      { type: "bathtubFoamSmile", x: 740, y: 170, w: 160, h: 130 },
+    gags: [{ type: "bathtubFoamSmile", x: 740, y: 170, w: 160, h: 130 }],
+    decor: [
+      { x: 260, y: 210, emoji: "🪞" },
+      { x: 740, y: 170, emoji: "🛁" },
+      { x: 780, y: 420, emoji: "🚿" },
     ],
   },
   {
@@ -235,21 +260,22 @@ const ROOMS = [
       { x: 480, y: 470, w: 820, h: 30 },
       { x: 60,  y: 270, w: 30,  h: 420 },
       { x: 900, y: 270, w: 30,  h: 420 },
-      { x: 420, y: 260, w: 220, h: 60 }, // costume trunk row
+      { x: 420, y: 260, w: 220, h: 60 },
       { x: 640, y: 340, w: 140, h: 60 },
     ],
     hides: [
       { x: 340, y: 420, w: 110, h: 70, label: "Costume Trunk" },
       { x: 780, y: 420, w: 110, h: 70, label: "Hat Stack" },
     ],
-    doors: [
-      { to: 4, x: 30,  y: 270, w: 40, h: 140, label: "← Bathroom" },
-    ],
-    collectibles: [
-      { type: "token", id: "token_5", x: 520, y: 160 },
-    ],
+    doors: [{ to: 4, x: 30, y: 270, w: 40, h: 140, label: "← Bathroom" }],
+    collectibles: [{ type: "token", id: "token_5", x: 520, y: 160 }],
     exit: { x: 860, y: 460, w: 120, h: 60, label: "Candy Chute Exit" },
     gags: [],
+    decor: [
+      { x: 340, y: 420, emoji: "🎩" },
+      { x: 780, y: 420, emoji: "🧢" },
+      { x: 520, y: 160, emoji: "🌙" },
+    ],
   },
 ];
 
@@ -257,42 +283,116 @@ function randPick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Little helper: rounded panel
+function panel(scene, x, y, w, h, alpha = 0.85) {
+  const g = scene.add.graphics().setScrollFactor(0);
+  g.fillStyle(0x141428, alpha);
+  g.fillRoundedRect(x, y, w, h, 12);
+  g.lineStyle(2, 0x6c6ca8, 0.95);
+  g.strokeRoundedRect(x, y, w, h, 12);
+  return g;
+}
+
 class MenuScene extends Phaser.Scene {
   constructor() { super("Menu"); }
+
   create() {
     this.cameras.main.setBackgroundColor("#0b0b12");
-    const cx = W / 2, cy = H / 2;
 
-    this.add.text(cx, 70, GAME_TITLE, { fontFamily: "Arial", fontSize: "36px", color: "#ffffff" }).setOrigin(0.5);
-    this.add.text(cx, 115, "Kid-safe fun horror (6–10): no harm, just BOOPS!", { fontFamily: "Arial", fontSize: "18px", color: "#cfcfe8" }).setOrigin(0.5);
+    // Floating spooky sparkles
+    this.makeTextures();
 
-    this.add.text(cx, 170, "Pick Difficulty", { fontFamily: "Arial", fontSize: "22px", color: "#ffffff" }).setOrigin(0.5);
+    const spark = this.add.particles(0, 0, "spark");
+    spark.createEmitter({
+      x: { min: 0, max: W },
+      y: { min: 0, max: H },
+      lifespan: 2400,
+      speedY: { min: -10, max: -30 },
+      scale: { start: 1.0, end: 0 },
+      quantity: 2,
+      frequency: 180,
+      alpha: { start: 0.7, end: 0 },
+    });
 
-    const buttons = [
-      { key: "easy",   y: 240 },
+    const cx = W / 2;
+
+    this.add.text(cx, 78, GAME_TITLE, {
+      fontFamily: "Arial",
+      fontSize: "40px",
+      color: "#ffffff",
+      stroke: "#000000",
+      strokeThickness: 4
+    }).setOrigin(0.5);
+
+    this.add.text(cx, 120, "Spooky-but-silly hide-and-seek. No harm—just BOOPS!", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#cfcfe8"
+    }).setOrigin(0.5);
+
+    this.add.text(cx, 170, "Pick Difficulty", {
+      fontFamily: "Arial",
+      fontSize: "22px",
+      color: "#ffffff"
+    }).setOrigin(0.5);
+
+    const opts = [
+      { key: "easy", y: 240 },
       { key: "normal", y: 305 },
-      { key: "hard",   y: 370 },
+      { key: "hard", y: 370 },
     ];
 
-    buttons.forEach(b => {
-      const d = DIFFICULTIES[b.key];
-      const box = this.add.rectangle(cx, b.y, 520, 50, 0x1b1b2f).setStrokeStyle(2, 0x6c6ca8).setInteractive({ useHandCursor: true });
-      this.add.text(cx, b.y, d.label, { fontFamily: "Arial", fontSize: "20px", color: "#ffffff" }).setOrigin(0.5);
+    opts.forEach(o => {
+      const d = DIFFICULTIES[o.key];
+      const box = this.add.rectangle(cx, o.y, 560, 54, 0x1b1b2f)
+        .setStrokeStyle(2, 0x6c6ca8)
+        .setInteractive({ useHandCursor: true });
+
+      const label = this.add.text(cx, o.y, d.label, {
+        fontFamily: "Arial",
+        fontSize: "20px",
+        color: "#ffffff"
+      }).setOrigin(0.5);
+
+      this.tweens.add({
+        targets: [box, label],
+        y: o.y - 2,
+        yoyo: true,
+        repeat: -1,
+        duration: 1200,
+        ease: "Sine.easeInOut"
+      });
 
       box.on("pointerdown", () => {
-        this.registry.set("difficultyKey", b.key);
+        this.registry.set("difficultyKey", o.key);
         this.registry.set("tokens", 0);
+        this.registry.set("score", 0);
         this.registry.set("boopsThisRun", 0);
-        this.registry.set("unlocks", { goggles: false, tracker: false, spray: false, banana: false, cape: false });
+        this.registry.set("tokenFlags", {});
+        this.registry.set("itemFlags", {});
+        this.registry.set("unlocks", { goggles:false, tracker:false, spray:false, banana:false, cape:false });
         this.registry.set("tutorialDone", false);
         this.scene.start("Room", { roomIndex: 0 });
       });
     });
 
-    this.add.text(cx, 460,
-      "Controls: WASD/Arrows to move • Shift to Run • Space to Hide • Click to Toss Distraction\nTouch: drag to move • tap buttons (added automatically on touch devices)",
-      { fontFamily: "Arial", fontSize: "14px", color: "#cfcfe8", align: "center", wordWrap: { width: 800 } }
+    this.add.text(cx, 470,
+      "Desktop: WASD/Arrows • Shift Run • Space Hide • E Use Door/Exit • Click toss distraction\niPad: Tap to toss • On-screen buttons for move/run/hide",
+      { fontFamily: "Arial", fontSize: "14px", color: "#cfcfe8", align: "center", wordWrap: { width: 860 } }
     ).setOrigin(0.5);
+  }
+
+  makeTextures() {
+    if (this.textures.exists("spark")) return;
+
+    // Spark
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(0, 0, 3, 3);
+      g.generateTexture("spark", 3, 3);
+      g.destroy();
+    }
   }
 }
 
@@ -300,16 +400,54 @@ class WinScene extends Phaser.Scene {
   constructor() { super("Win"); }
   create() {
     this.cameras.main.setBackgroundColor("#101020");
-    const cx = W / 2, cy = H / 2;
-    this.add.text(cx, 160, "YOU WIN!", { fontFamily: "Arial", fontSize: "54px", color: "#ffffff" }).setOrigin(0.5);
-    this.add.text(cx, 220, "You rode the Candy Chute and escaped the BOOP!", { fontFamily: "Arial", fontSize: "20px", color: "#cfcfe8" }).setOrigin(0.5);
+    const cx = W / 2;
+
+    const p = panel(this, cx - 320, 120, 640, 280, 0.9);
+
+    this.add.text(cx, 170, "YOU WIN!", {
+      fontFamily: "Arial",
+      fontSize: "54px",
+      color: "#ffffff",
+      stroke: "#000",
+      strokeThickness: 4
+    }).setOrigin(0.5);
+
+    this.add.text(cx, 230, "You rode the Candy Chute and escaped the BOOP!", {
+      fontFamily: "Arial",
+      fontSize: "20px",
+      color: "#cfcfe8"
+    }).setOrigin(0.5);
 
     const boops = this.registry.get("boopsThisRun") ?? 0;
-    this.add.text(cx, 270, `Boops this run: ${boops}`, { fontFamily: "Arial", fontSize: "18px", color: "#cfcfe8" }).setOrigin(0.5);
+    const score = this.registry.get("score") ?? 0;
 
-    const btn = this.add.rectangle(cx, 360, 240, 56, 0x1b1b2f).setStrokeStyle(2, 0x6c6ca8).setInteractive({ useHandCursor: true });
-    this.add.text(cx, 360, "Play Again", { fontFamily: "Arial", fontSize: "20px", color: "#ffffff" }).setOrigin(0.5);
+    this.add.text(cx, 270, `Boops this run: ${boops}   •   Score: ${score}`, {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#cfcfe8"
+    }).setOrigin(0.5);
+
+    const btn = this.add.rectangle(cx, 350, 260, 56, 0x1b1b2f)
+      .setStrokeStyle(2, 0x6c6ca8)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(cx, 350, "Play Again", { fontFamily: "Arial", fontSize: "20px", color: "#ffffff" }).setOrigin(0.5);
+
     btn.on("pointerdown", () => this.scene.start("Menu"));
+
+    // little celebration sparkles
+    const conf = this.add.particles(0, 0, "confetti");
+    conf.createEmitter({
+      x: { min: 80, max: W - 80 },
+      y: 0,
+      speedY: { min: 80, max: 170 },
+      speedX: { min: -40, max: 40 },
+      lifespan: 1400,
+      quantity: 3,
+      frequency: 90,
+      scale: { start: 1, end: 0 },
+      alpha: { start: 0.8, end: 0 },
+    });
   }
 }
 
@@ -326,15 +464,23 @@ class RoomScene extends Phaser.Scene {
 
     this.room = ROOMS[this.roomIndex];
 
+    this.makeTextures();
     this.cameras.main.setBackgroundColor(this.room.bg);
 
-    // --- Generate simple textures once ---
-    this.makeTextures();
-
-    // --- World bounds ---
     this.physics.world.setBounds(0, 0, W, H);
 
-    // --- Obstacles (static) ---
+    // Background "floor" grid for readability
+    this.floor = this.add.graphics();
+    this.floor.fillStyle(0x0b0b12, 0.18);
+    for (let x = 0; x < W; x += 48) this.floor.fillRect(x, 0, 1, H);
+    for (let y = 0; y < H; y += 48) this.floor.fillRect(0, y, W, 1);
+
+    // Decor emojis (cheap charm)
+    (this.room.decor || []).forEach(d => {
+      this.add.text(d.x, d.y, d.emoji, { fontFamily: "Arial", fontSize: "26px" }).setOrigin(0.5).setAlpha(0.8);
+    });
+
+    // Obstacles
     this.walls = this.physics.add.staticGroup();
     this.room.obstacles.forEach(o => {
       const wall = this.add.rectangle(o.x, o.y, o.w, o.h, 0x23233a).setStrokeStyle(2, 0x3b3b5a);
@@ -342,19 +488,22 @@ class RoomScene extends Phaser.Scene {
       this.walls.add(wall);
     });
 
-    // --- Hiding spots (zones) ---
+    // Hiding zones
     this.hideZones = [];
-    this.hideZoneGraphics = this.add.graphics();
-    this.hideZoneGraphics.setDepth(5);
+    this.hideZoneGraphics = this.add.graphics().setDepth(10);
 
     this.room.hides.forEach(h => {
       const z = this.add.zone(h.x, h.y, h.w, h.h);
       this.physics.add.existing(z, true);
       z._hideLabel = h.label;
       this.hideZones.push(z);
+
+      // Cute marker icon near hide zones
+      this.add.text(h.x, h.y - (h.h / 2) - 18, "🫥", { fontFamily: "Arial", fontSize: "18px" })
+        .setOrigin(0.5).setAlpha(0.55);
     });
 
-    // --- Doors (zones) ---
+    // Doors
     this.doorZones = [];
     (this.room.doors || []).forEach(d => {
       if (d.requires) {
@@ -367,56 +516,62 @@ class RoomScene extends Phaser.Scene {
       z._label = d.label;
       this.doorZones.push(z);
 
-      const sign = this.add.text(d.x, d.y - 40, "🚪", { fontFamily: "Arial", fontSize: "24px", color: "#ffffff" }).setOrigin(0.5);
-      sign.setAlpha(0.8);
+      this.add.text(d.x, d.y - 40, "🚪", { fontFamily: "Arial", fontSize: "24px" }).setOrigin(0.5).setAlpha(0.85);
     });
 
-    // --- Exit (attic only) ---
+    // Exit zone (attic)
     this.exitZone = null;
     if (this.room.exit) {
       const e = this.room.exit;
       this.exitZone = this.add.zone(e.x, e.y, e.w, e.h);
       this.physics.add.existing(this.exitZone, true);
-      this.add.text(e.x, e.y - 30, "🍬", { fontFamily: "Arial", fontSize: "28px", color: "#ffffff" }).setOrigin(0.5);
+      this.add.text(e.x, e.y - 30, "🍬", { fontFamily: "Arial", fontSize: "28px" }).setOrigin(0.5);
     }
 
-    // --- Player ---
+    // Player + shadow
     this.playerHidden = false;
+    this.hideProgress = 0; // 0..1 settle meter
+
+    this.playerShadow = this.add.ellipse(this.room.spawn.x, this.room.spawn.y + 18, 26, 10, 0x000000, 0.35);
     this.player = this.physics.add.sprite(this.room.spawn.x, this.room.spawn.y, "player");
     this.player.setCollideWorldBounds(true);
     this.player.body.setSize(26, 26);
+    this.player.body.setDrag(this.diff.drag, this.diff.drag);
+    this.player.body.setMaxSpeed(this.diff.playerRun);
 
-    // --- Elephant ---
+    // Elephant + shadow
+    this.elephantShadow = this.add.ellipse(this.room.elephantSpawn.x, this.room.elephantSpawn.y + 24, 40, 14, 0x000000, 0.35);
     this.elephant = this.physics.add.sprite(this.room.elephantSpawn.x, this.room.elephantSpawn.y, "elephant");
     this.elephant.setCollideWorldBounds(true);
     this.elephant.body.setSize(44, 44);
 
-    // Collisions
+    // Mood icon above elephant
+    this.eMood = this.add.text(this.elephant.x, this.elephant.y - 40, "💤", { fontFamily: "Arial", fontSize: "22px" })
+      .setOrigin(0.5).setAlpha(0.9);
+
+    // Physics
     this.physics.add.collider(this.player, this.walls);
     this.physics.add.collider(this.elephant, this.walls);
-
-    // Boop overlap (safe catch)
     this.physics.add.overlap(this.player, this.elephant, () => this.onBoop(), null, this);
 
-    // --- Collectibles ---
+    // Collectibles
     this.collectGroup = this.physics.add.staticGroup();
     this.spawnCollectibles();
+    this.physics.add.overlap(this.player, this.collectGroup, (p, it) => this.pickup(it), null, this);
 
-    this.physics.add.overlap(this.player, this.collectGroup, (player, item) => {
-      this.pickup(item);
-    });
+    // Gumdrops (fun + recharge)
+    this.gumdropGroup = this.physics.add.staticGroup();
+    this.spawnGumdrops(3);
+    this.physics.add.overlap(this.player, this.gumdropGroup, (p, g) => this.pickGumdrop(g), null, this);
 
-    // --- Distraction "sound pings" ---
-    this.distractions = this.add.group();
-    this.distractionCharges = 1; // base
-    this.lastSoundPoint = null;
-    this.soundPingTimer = 0;
-
-    // --- Noise ---
-    this.noise = 0; // 0..100
+    // Noise + charges
+    this.noise = 0;
     this.noiseMult = 1;
 
-    // --- AI ---
+    this.distractionCharges = 1;
+    this.maxCharges = 1;
+
+    // AI
     this.ai = {
       state: "PATROL",
       patrolPoints: this.makePatrolPoints(),
@@ -427,9 +582,10 @@ class RoomScene extends Phaser.Scene {
       lastSeen: null,
       tellTimer: 0,
       nextVoice: 0,
+      sneezeCooldown: 0,
     };
 
-    // --- Input ---
+    // Input
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys({
       W: Phaser.Input.Keyboard.KeyCodes.W,
@@ -441,40 +597,55 @@ class RoomScene extends Phaser.Scene {
       E: Phaser.Input.Keyboard.KeyCodes.E,
     });
 
-    // Click to toss distraction
+    // Tap/click toss
     this.input.on("pointerdown", (p) => {
-      // If clicking UI area, ignore
-      if (p.y < 90) return;
+      if (p.y < 110) return; // don't throw on top UI
       this.tryTossDistraction(p.worldX, p.worldY);
     });
 
-    // --- UI ---
+    // UI panels
+    panel(this, 10, 10, 430, 92, 0.85);
+    panel(this, W - 300, 10, 290, 92, 0.85);
+
     this.ui = {};
-    this.ui.title = this.add.text(12, 10, this.room.key, { fontFamily: "Arial", fontSize: "18px", color: "#ffffff" }).setScrollFactor(0);
-    this.ui.tokens = this.add.text(12, 34, "", { fontFamily: "Arial", fontSize: "16px", color: "#cfcfe8" }).setScrollFactor(0);
-    this.ui.hint = this.add.text(12, 58, "", { fontFamily: "Arial", fontSize: "14px", color: "#cfcfe8" }).setScrollFactor(0);
+    this.ui.room = this.add.text(22, 18, this.room.key, { fontFamily: "Arial", fontSize: "18px", color: "#ffffff" }).setScrollFactor(0);
+    this.ui.tokens = this.add.text(22, 42, "", { fontFamily: "Arial", fontSize: "16px", color: "#cfcfe8" }).setScrollFactor(0);
+    this.ui.score  = this.add.text(22, 66, "", { fontFamily: "Arial", fontSize: "16px", color: "#cfcfe8" }).setScrollFactor(0);
 
-    this.ui.noiseLabel = this.add.text(W - 240, 10, "Noise", { fontFamily: "Arial", fontSize: "14px", color: "#ffffff" }).setScrollFactor(0);
-    this.ui.noiseBarBg = this.add.rectangle(W - 120, 34, 200, 14, 0x20203a).setStrokeStyle(1, 0x5e5e90).setScrollFactor(0);
-    this.ui.noiseBar = this.add.rectangle(W - 220, 34, 0, 10, 0x7f7fff).setOrigin(0, 0.5).setScrollFactor(0);
+    this.ui.noiseLabel = this.add.text(W - 286, 18, "Noise", { fontFamily: "Arial", fontSize: "14px", color: "#ffffff" }).setScrollFactor(0);
+    this.ui.noiseBarBg = this.add.rectangle(W - 150, 44, 240, 14, 0x20203a).setStrokeStyle(1, 0x5e5e90).setScrollFactor(0);
+    this.ui.noiseBar = this.add.rectangle(W - 270, 44, 0, 10, 0x7f7fff).setOrigin(0, 0.5).setScrollFactor(0);
 
-    this.ui.bubble = this.add.text(W / 2, 90, "", { fontFamily: "Arial", fontSize: "18px", color: "#ffffff", align: "center", wordWrap: { width: 860 } })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(100).setAlpha(0);
+    this.ui.charges = this.add.text(W - 286, 66, "", { fontFamily: "Arial", fontSize: "16px", color: "#cfcfe8" }).setScrollFactor(0);
 
-    this.ui.action = this.add.text(W / 2, H - 24, "", { fontFamily: "Arial", fontSize: "14px", color: "#cfcfe8" })
+    this.ui.action = this.add.text(W / 2, H - 22, "", { fontFamily: "Arial", fontSize: "14px", color: "#cfcfe8" })
       .setOrigin(0.5).setScrollFactor(0);
 
-    // Touch controls (simple on-screen buttons)
+    this.ui.bubble = this.add.text(W / 2, 120, "", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: 860 },
+      stroke: "#000",
+      strokeThickness: 4
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(200).setAlpha(0);
+
+    // Hide settle bar
+    this.ui.hideBarBg = this.add.rectangle(W / 2, H - 56, 220, 14, 0x20203a).setStrokeStyle(1, 0x5e5e90)
+      .setScrollFactor(0).setAlpha(0);
+    this.ui.hideBar = this.add.rectangle(W / 2 - 110, H - 56, 0, 10, 0x7f7fff).setOrigin(0, 0.5)
+      .setScrollFactor(0).setAlpha(0);
+
+    // Lighting overlay (spotlight)
+    this.darkness = this.add.graphics().setDepth(150).setScrollFactor(0);
+    this.spot = this.add.graphics().setDepth(151).setScrollFactor(0);
+    this.spot.setBlendMode(Phaser.BlendModes.ERASE);
+
+    // Touch controls
     this.touchUI = this.buildTouchUI();
 
-    // Tutorial (once)
-    if (!this.registry.get("tutorialDone")) {
-      this.runTutorial();
-    } else {
-      this.say("Narrator", "Find 5 Trick Tokens 🍬. If you get caught, you’ll just get BOOPED and respawn!");
-    }
-
-    // Room gags
+    // Gags
     this.gagZones = [];
     (this.room.gags || []).forEach(g => {
       const z = this.add.zone(g.x, g.y, g.w, g.h);
@@ -484,19 +655,34 @@ class RoomScene extends Phaser.Scene {
       this.gagZones.push(z);
     });
 
-    // Overlaps for doors / exit / gags
+    // Overlaps
     this.physics.add.overlap(this.player, this.doorZones, (p, z) => this.enterDoor(z), null, this);
-    if (this.exitZone) {
-      this.physics.add.overlap(this.player, this.exitZone, () => this.tryExit(), null, this);
-    }
-    if (this.gagZones.length) {
-      this.physics.add.overlap(this.player, this.gagZones, (p, z) => this.triggerGag(z), null, this);
-    }
+    if (this.exitZone) this.physics.add.overlap(this.player, this.exitZone, () => this.tryExit(), null, this);
+    if (this.gagZones.length) this.physics.add.overlap(this.player, this.gagZones, (p, z) => this.triggerGag(z), null, this);
 
-    // Unlock effects
-    const unlocks = this.registry.get("unlocks") || {};
-    this.noiseMult = unlocks.spray ? 0.75 : 1.0; // Squeak-B-Gone reduces noise gain
-    this.distractionCharges = 1 + (unlocks.banana ? 1 : 0); // Banana-Phone adds 1 extra distraction charge
+    // Apply unlocks now
+    this.applyUnlocks();
+
+    // Room title splash
+    this.roomTitle = this.add.text(W / 2, 260, this.room.key, {
+      fontFamily: "Arial",
+      fontSize: "42px",
+      color: "#ffffff",
+      stroke: "#000",
+      strokeThickness: 6
+    }).setOrigin(0.5).setAlpha(0);
+    this.tweens.add({
+      targets: this.roomTitle,
+      alpha: 1,
+      duration: 250,
+      yoyo: true,
+      hold: 650,
+      ease: "Sine.easeOut"
+    });
+
+    // Tutorial
+    if (!this.registry.get("tutorialDone")) this.runTutorial();
+    else this.say("Narrator", "Collect 5 Trick Tokens 🍬. If you get caught, you just get BOOPED and respawn!");
 
     this.updateUI();
   }
@@ -504,7 +690,7 @@ class RoomScene extends Phaser.Scene {
   makeTextures() {
     if (this.textures.exists("player")) return;
 
-    // Player: round-ish candy kid
+    // Player texture (cuter)
     {
       const g = this.add.graphics();
       g.fillStyle(0x9fe2ff, 1);
@@ -513,39 +699,34 @@ class RoomScene extends Phaser.Scene {
       g.fillCircle(11, 13, 2);
       g.fillCircle(21, 13, 2);
       g.lineStyle(2, 0x0b0b12, 1);
-      g.beginPath();
-      g.arc(16, 19, 6, 0, Math.PI, false);
-      g.strokePath();
+      g.beginPath(); g.arc(16, 19, 6, 0, Math.PI, false); g.strokePath();
+      // tiny candy hat
+      g.fillStyle(0xffa13a, 1);
+      g.fillRoundedRect(10, 3, 12, 6, 3);
       g.generateTexture("player", 32, 32);
       g.destroy();
     }
 
-    // Elephant: goofy circle + ears + trunk
+    // Elephant texture (goofy + big ears)
     {
       const g = this.add.graphics();
       g.fillStyle(0xb7b7c9, 1);
       g.fillCircle(24, 24, 22);
-      // ears
       g.fillStyle(0xa8a8bf, 1);
-      g.fillEllipse(6, 24, 14, 18);
-      g.fillEllipse(42, 24, 14, 18);
-      // trunk
+      g.fillEllipse(6, 24, 16, 22);
+      g.fillEllipse(42, 24, 16, 22);
       g.fillStyle(0x9a9ab3, 1);
-      g.fillRoundedRect(20, 30, 8, 18, 4);
-      // eyes
+      g.fillRoundedRect(19, 30, 10, 18, 5);
       g.fillStyle(0x0b0b12, 1);
       g.fillCircle(17, 20, 2);
       g.fillCircle(31, 20, 2);
-      // smile
       g.lineStyle(2, 0x0b0b12, 1);
-      g.beginPath();
-      g.arc(24, 27, 9, 0, Math.PI, false);
-      g.strokePath();
+      g.beginPath(); g.arc(24, 27, 9, 0, Math.PI, false); g.strokePath();
       g.generateTexture("elephant", 48, 48);
       g.destroy();
     }
 
-    // Trick Token: little pumpkin coin
+    // Token
     {
       const g = this.add.graphics();
       g.fillStyle(0xffa13a, 1);
@@ -554,14 +735,12 @@ class RoomScene extends Phaser.Scene {
       g.fillCircle(8, 10, 2);
       g.fillCircle(16, 10, 2);
       g.lineStyle(2, 0x0b0b12, 1);
-      g.beginPath();
-      g.arc(12, 14, 6, 0, Math.PI, false);
-      g.strokePath();
+      g.beginPath(); g.arc(12, 14, 6, 0, Math.PI, false); g.strokePath();
       g.generateTexture("token", 24, 24);
       g.destroy();
     }
 
-    // Item: little star badge
+    // Item
     {
       const g = this.add.graphics();
       g.fillStyle(0xfff1a6, 1);
@@ -572,7 +751,7 @@ class RoomScene extends Phaser.Scene {
       g.destroy();
     }
 
-    // Confetti particle
+    // Confetti
     {
       const g = this.add.graphics();
       g.fillStyle(0xffffff, 1);
@@ -580,32 +759,110 @@ class RoomScene extends Phaser.Scene {
       g.generateTexture("confetti", 4, 4);
       g.destroy();
     }
+
+    // Gumdrop (recharge)
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x7fffd4, 1);
+      g.fillRoundedRect(2, 4, 20, 16, 6);
+      g.fillStyle(0x0b0b12, 1);
+      g.fillCircle(9, 12, 1.5);
+      g.fillCircle(15, 12, 1.5);
+      g.generateTexture("gumdrop", 24, 24);
+      g.destroy();
+    }
+
+    // Run puff
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(10, 10, 10);
+      g.generateTexture("puff", 20, 20);
+      g.destroy();
+    }
+  }
+
+  applyUnlocks() {
+    const unlocks = this.registry.get("unlocks") || {};
+    this.noiseMult = unlocks.spray ? 0.75 : 1.0;
+
+    this.maxCharges = 1 + (unlocks.banana ? 1 : 0);
+    this.distractionCharges = Phaser.Math.Clamp(this.distractionCharges || this.maxCharges, 0, this.maxCharges);
   }
 
   spawnCollectibles() {
-    const unlocks = this.registry.get("unlocks") || {};
-    const tokensAlready = this.registry.get("tokenFlags") || {};
-    const itemsAlready = this.registry.get("itemFlags") || {};
+    const tokenFlags = this.registry.get("tokenFlags") || {};
+    const itemFlags = this.registry.get("itemFlags") || {};
 
     this.room.collectibles.forEach(c => {
-      if (c.type === "token" && tokensAlready[c.id]) return;
-      if (c.type === "item" && itemsAlready[c.id]) return;
+      if (c.type === "token" && tokenFlags[c.id]) return;
+      if (c.type === "item" && itemFlags[c.id]) return;
 
       const key = (c.type === "token") ? "token" : "item";
       const s = this.collectGroup.create(c.x, c.y, key);
       s._collectType = c.type;
       s._collectId = c.id;
 
-      // little bob
       this.tweens.add({
         targets: s,
-        y: s.y - 6,
-        duration: 700,
+        y: s.y - 8,
+        duration: 650,
         yoyo: true,
         repeat: -1,
         ease: "Sine.easeInOut",
       });
     });
+  }
+
+  spawnGumdrops(count) {
+    // Spawn safe, random-ish spots that aren't inside obstacles
+    const tries = 30;
+    let placed = 0;
+
+    for (let t = 0; t < tries && placed < count; t++) {
+      const x = Phaser.Math.Between(120, W - 120);
+      const y = Phaser.Math.Between(140, H - 120);
+
+      const blocked = this.room.obstacles.some(o =>
+        x > (o.x - o.w / 2 - 16) && x < (o.x + o.w / 2 + 16) &&
+        y > (o.y - o.h / 2 - 16) && y < (o.y + o.h / 2 + 16)
+      );
+      if (blocked) continue;
+
+      const g = this.gumdropGroup.create(x, y, "gumdrop");
+      this.tweens.add({
+        targets: g,
+        y: y - 6,
+        duration: 700,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+
+      placed++;
+    }
+  }
+
+  pickGumdrop(g) {
+    const score = (this.registry.get("score") || 0) + 10;
+    this.registry.set("score", score);
+
+    // Recharge distraction a bit
+    this.distractionCharges = Phaser.Math.Clamp(this.distractionCharges + 1, 0, this.maxCharges);
+
+    // Pop effect
+    const puff = this.add.image(g.x, g.y, "puff").setAlpha(0.6);
+    this.tweens.add({
+      targets: puff,
+      scale: 1.8,
+      alpha: 0,
+      duration: 350,
+      onComplete: () => puff.destroy()
+    });
+
+    g.destroy();
+    this.say("Player", "Gumdrop power! +1 distraction!");
+    this.updateUI();
   }
 
   pickup(itemSprite) {
@@ -617,8 +874,11 @@ class RoomScene extends Phaser.Scene {
       flags[id] = true;
       this.registry.set("tokenFlags", flags);
 
-      const tokens = (this.registry.get("tokens") || 0) + 1;
-      this.registry.set("tokens", tokens);
+      this.registry.set("tokens", (this.registry.get("tokens") || 0) + 1);
+      this.registry.set("score", (this.registry.get("score") || 0) + 50);
+
+      // confetti pop
+      this.popConfetti(itemSprite.x, itemSprite.y, 16);
 
       this.say("Player", randPick(PLAYER_LINES));
     } else {
@@ -627,29 +887,27 @@ class RoomScene extends Phaser.Scene {
       this.registry.set("itemFlags", flags);
 
       const unlocks = this.registry.get("unlocks") || { goggles:false, tracker:false, spray:false, banana:false, cape:false };
-
-      // 5 silly items + unlock behavior
-      if (id === "goggles") unlocks.goggles = true;           // show hiding outlines
-      if (id === "tracker") unlocks.tracker = true;           // arrow to nearest token
-      if (id === "spray")   unlocks.spray = true;             // lower noise gain
-      if (id === "banana")  unlocks.banana = true;            // +1 distraction charge
-      if (id === "cape")    unlocks.cape = true;              // unlock shortcut door in hallway
-
+      if (id === "goggles") unlocks.goggles = true;
+      if (id === "tracker") unlocks.tracker = true;
+      if (id === "spray") unlocks.spray = true;
+      if (id === "banana") unlocks.banana = true;
+      if (id === "cape") unlocks.cape = true;
       this.registry.set("unlocks", unlocks);
 
-      // Apply effects immediately
-      this.noiseMult = unlocks.spray ? 0.75 : 1.0;
-      this.distractionCharges = 1 + (unlocks.banana ? 1 : 0);
+      this.registry.set("score", (this.registry.get("score") || 0) + 100);
+
+      this.applyUnlocks();
+      this.popConfetti(itemSprite.x, itemSprite.y, 22);
 
       const itemName = {
-        goggles: "Giggle Goggles",
-        tracker: "Trick-Token Tracker Tot",
-        spray: "Squeak-B-Gone Spray",
-        banana: "Banana-Phone (Toy)",
-        cape: "Cape of the Brave Jellybean",
+        goggles: "Giggle Goggles (hide spots glow!)",
+        tracker: "Tracker Tot (points to tokens!)",
+        spray: "Squeak-B-Gone Spray (quieter running!)",
+        banana: "Banana-Phone (extra distraction!)",
+        cape: "Brave Jellybean Cape (secret hatch!)",
       }[id] || "Mystery Thing";
 
-      this.say("Narrator", `You found: ${itemName}!`);
+      this.say("Narrator", `Unlocked: ${itemName}`);
       this.say("Elephant", randPick(ELEPHANT_LINES));
     }
 
@@ -659,172 +917,149 @@ class RoomScene extends Phaser.Scene {
 
   updateUI() {
     const tokens = this.registry.get("tokens") || 0;
-    this.ui.tokens.setText(`Trick Tokens: ${tokens}/5`);
+    const score = this.registry.get("score") || 0;
 
-    const unlocks = this.registry.get("unlocks") || {};
-    const hints = [];
-    hints.push("Shift = Run (louder)");
-    hints.push("Space = Hide (in a hide spot)");
-    hints.push(`Distractions: ${this.distractionCharges} (click to toss)`);
-    if (unlocks.goggles) hints.push("Goggles: Hide spots glow");
-    if (unlocks.tracker) hints.push("Tracker: Arrow to nearest token");
-    if (unlocks.cape) hints.push("Cape: Secret hatch in hallway!");
-    this.ui.hint.setText(hints.join(" • "));
+    this.ui.tokens.setText(`Trick Tokens: ${tokens}/5`);
+    this.ui.score.setText(`Score: ${score}`);
+
+    this.ui.charges.setText(`Distractions: ${this.distractionCharges}/${this.maxCharges}  (tap/click to toss)`);
   }
 
   say(who, text) {
-    // quick bubble at top
     this.ui.bubble.setText(`${who}: ${text}`);
     this.ui.bubble.setAlpha(1);
     this.tweens.killTweensOf(this.ui.bubble);
-    this.tweens.add({
-      targets: this.ui.bubble,
-      alpha: 0,
-      duration: 1200,
-      delay: 1400,
+    this.tweens.add({ targets: this.ui.bubble, alpha: 0, duration: 1200, delay: 1400 });
+  }
+
+  popConfetti(x, y, qty) {
+    const p = this.add.particles(0, 0, "confetti", {
+      x, y,
+      speed: { min: 40, max: 180 },
+      lifespan: 500,
+      quantity: qty,
+      scale: { start: 1, end: 0 },
+      alpha: { start: 0.85, end: 0 },
     });
+    this.time.delayedCall(520, () => p.destroy());
   }
 
   makePatrolPoints() {
-    // a gentle loop around the room
     return [
-      { x: 160, y: 140 },
-      { x: 800, y: 140 },
-      { x: 800, y: 400 },
-      { x: 160, y: 400 },
+      { x: 170, y: 150 },
+      { x: 790, y: 150 },
+      { x: 790, y: 410 },
+      { x: 170, y: 410 },
     ];
   }
 
   canSeePlayer() {
     if (this.playerHidden) return false;
+
     const dist = Phaser.Math.Distance.Between(this.elephant.x, this.elephant.y, this.player.x, this.player.y);
     if (dist > this.diff.sightRange) return false;
 
-    // Simple line-of-sight: raycast-ish (sample points)
     const steps = 10;
     for (let i = 1; i < steps; i++) {
       const t = i / steps;
       const x = Phaser.Math.Linear(this.elephant.x, this.player.x, t);
       const y = Phaser.Math.Linear(this.elephant.y, this.player.y, t);
-      // if the sample point overlaps any wall rectangle, block vision
       const blocked = this.room.obstacles.some(o =>
-        x > (o.x - o.w / 2) && x < (o.x + o.w / 2) && y > (o.y - o.h / 2) && y < (o.y + o.h / 2)
+        x > (o.x - o.w / 2) && x < (o.x + o.w / 2) &&
+        y > (o.y - o.h / 2) && y < (o.y + o.h / 2)
       );
       if (blocked) return false;
     }
-
     return true;
   }
 
   postSoundPing(x, y, strength = 60) {
-    this.lastSoundPoint = { x, y, strength };
-    this.soundPingTimer = 0.1; // short memory
-
-    // Elephant reacts if sound is strong enough OR noise is high
     if (strength >= this.diff.hearThreshold) {
       this.ai.state = "INVESTIGATE";
       this.ai.investigateTarget = { x, y };
       this.ai.investigateTimeLeft = this.diff.investigateSeconds;
-      if (Math.random() < 0.35) this.say("Elephant", "Huh? A funny sound!");
+      this.eMood.setText("🧐");
+      if (Math.random() < 0.45) this.say("Elephant", "Huh? A funny sound!");
     }
   }
 
   tryTossDistraction(x, y) {
-    if (this.distractionCharges <= 0) return;
-
-    // Can't toss while hidden (keeps it simple + readable)
+    if (this.distractionCharges <= 0) {
+      this.say("Narrator", "No distractions left! Find Gumdrops to recharge.");
+      return;
+    }
     if (this.playerHidden) return;
 
     this.distractionCharges -= 1;
     this.updateUI();
 
-    this.say("Player", "Distraction deployed!");
-
-    const dot = this.add.circle(x, y, 8, 0xffffff).setAlpha(0.65);
+    // Visual target ping
+    const ring = this.add.circle(x, y, 10, 0xffffff, 0.25);
     this.tweens.add({
-      targets: dot,
+      targets: ring,
+      radius: 40,
       alpha: 0,
-      duration: 800,
-      onComplete: () => dot.destroy(),
+      duration: 420,
+      onComplete: () => ring.destroy()
     });
 
-    // Sound ping at clicked position
+    this.say("Player", "Distraction deployed!");
     this.postSoundPing(x, y, 80);
-  }
-
-  findNearestUncollectedToken() {
-    const flags = this.registry.get("tokenFlags") || {};
-    // Search remaining tokens in all rooms for a rough direction hint
-    let best = null;
-    for (let r = 0; r < ROOMS.length; r++) {
-      const room = ROOMS[r];
-      for (const c of room.collectibles) {
-        if (c.type !== "token") continue;
-        if (flags[c.id]) continue;
-        // If token is in current room, use exact
-        const wx = (r === this.roomIndex) ? c.x : (r < this.roomIndex ? 60 : 900);
-        const wy = (r === this.roomIndex) ? c.y : 270;
-        const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, wx, wy);
-        if (!best || d < best.d) best = { x: wx, y: wy, d };
-      }
-    }
-    return best;
   }
 
   onBoop() {
     if (this.playerHidden) return;
-
-    // brief invuln to avoid instant double-boops
     if (this._boopCooldown) return;
+
     this._boopCooldown = true;
     this.time.delayedCall(900, () => (this._boopCooldown = false));
 
-    const boops = (this.registry.get("boopsThisRun") || 0) + 1;
-    this.registry.set("boopsThisRun", boops);
+    this.registry.set("boopsThisRun", (this.registry.get("boopsThisRun") || 0) + 1);
 
-    // Confetti puff (harmless)
-    const p = this.add.particles(0, 0, "confetti", {
-      x: this.player.x,
-      y: this.player.y,
-      speed: { min: 40, max: 160 },
-      lifespan: 500,
-      quantity: 25,
-      scale: { start: 1, end: 0 },
-    });
-    this.time.delayedCall(550, () => p.destroy());
+    this.cameras.main.shake(180, 0.006);
+    this.popConfetti(this.player.x, this.player.y, 28);
 
     this.say("Elephant", "BOOP-A-DOOP!");
     this.say("Player", "Booped! Respawn time!");
 
-    // Respawn player safely
+    // Respawn + reset
     this.player.setPosition(this.room.spawn.x, this.room.spawn.y);
+    this.player.body.setVelocity(0, 0);
+
     this.playerHidden = false;
+    this.hideProgress = 0;
     this.player.setAlpha(1);
 
-    // Elephant resets to patrol
     this.ai.state = "PATROL";
     this.ai.investigateTarget = null;
     this.ai.investigateTimeLeft = 0;
     this.ai.chaseMemory = 0;
+
+    this.eMood.setText("💤");
   }
 
   enterDoor(zone) {
-    // only if player is "trying" (prevents accidental teleport spam)
     if (!this.keys.E.isDown) {
       this.ui.action.setText(`Press E to enter: ${zone._label}`);
       return;
     }
-    this.scene.restart({ roomIndex: zone._toRoom });
+
+    // Fade transition
+    this.cameras.main.fadeOut(180, 0, 0, 0);
+    this.time.delayedCall(190, () => this.scene.restart({ roomIndex: zone._toRoom }));
   }
 
   tryExit() {
     const tokens = this.registry.get("tokens") || 0;
+
     if (!this.keys.E.isDown) {
       this.ui.action.setText("Press E to ride the Candy Chute!");
       return;
     }
+
     if (tokens >= 5) {
-      this.scene.start("Win");
+      this.cameras.main.fadeOut(240, 0, 0, 0);
+      this.time.delayedCall(250, () => this.scene.start("Win"));
     } else {
       this.say("Narrator", `You need ${5 - tokens} more Trick Token(s)!`);
     }
@@ -841,39 +1076,23 @@ class RoomScene extends Phaser.Scene {
         targets: [portrait, face],
         x: "+=8",
         yoyo: true,
-        repeat: 5,
+        repeat: 6,
         duration: 70,
         onComplete: () => {
           face.setText("🤧");
           this.say("Narrator", "The portrait sneezes glitter! ACHOO!");
-          const p = this.add.particles(0, 0, "confetti", {
-            x: zone.x, y: zone.y,
-            speed: { min: 30, max: 120 },
-            lifespan: 550,
-            quantity: 18,
-            scale: { start: 1, end: 0 },
-          });
-          this.time.delayedCall(600, () => {
-            p.destroy(); portrait.destroy(); face.destroy();
-          });
-        },
+          this.popConfetti(zone.x, zone.y, 18);
+          this.time.delayedCall(700, () => { portrait.destroy(); face.destroy(); });
+        }
       });
     }
 
     if (zone._gagType === "toyChestBalloons") {
       this.say("Narrator", "The toy chest pops open… BOING!");
       const chest = this.add.rectangle(zone.x, zone.y + 20, 90, 50, 0x3a2b2b).setStrokeStyle(2, 0x6c6ca8);
-      const balloons = [];
       for (let i = 0; i < 3; i++) {
-        const b = this.add.text(zone.x + (-20 + i * 20), zone.y - 10, "🎈", { fontFamily: "Arial", fontSize: "26px" }).setOrigin(0.5);
-        balloons.push(b);
-        this.tweens.add({
-          targets: b,
-          y: b.y - 80,
-          duration: 800,
-          ease: "Sine.easeOut",
-          onComplete: () => b.destroy(),
-        });
+        const b = this.add.text(zone.x + (-22 + i * 22), zone.y - 10, "🎈", { fontFamily: "Arial", fontSize: "26px" }).setOrigin(0.5);
+        this.tweens.add({ targets: b, y: b.y - 90, duration: 820, ease: "Sine.easeOut", onComplete: () => b.destroy() });
       }
       this.time.delayedCall(900, () => chest.destroy());
     }
@@ -884,13 +1103,7 @@ class RoomScene extends Phaser.Scene {
       const foam = this.add.text(zone.x, zone.y, "☺️", { fontFamily: "Arial", fontSize: "46px" }).setOrigin(0.5);
       const duck = this.add.text(zone.x + 70, zone.y + 30, "🦆", { fontFamily: "Arial", fontSize: "26px" }).setOrigin(0.5);
       this.say("Narrator", "The duck goes: QUACK-BOO!");
-      this.tweens.add({
-        targets: [foam, duck],
-        y: "-=10",
-        yoyo: true,
-        repeat: 5,
-        duration: 120,
-      });
+      this.tweens.add({ targets: [foam, duck], y: "-=10", yoyo: true, repeat: 6, duration: 120 });
       this.time.delayedCall(1400, () => { tub.destroy(); foam.destroy(); duck.destroy(); });
     }
   }
@@ -898,25 +1111,23 @@ class RoomScene extends Phaser.Scene {
   buildTouchUI() {
     if (!this.sys.game.device.input.touch) return null;
 
-    // Simple D-pad left, buttons right
     const ui = {};
-
     ui.pad = {
-      up: this.add.rectangle(70, H - 120, 48, 48, 0x1b1b2f).setAlpha(0.75).setInteractive(),
-      left: this.add.rectangle(22, H - 72, 48, 48, 0x1b1b2f).setAlpha(0.75).setInteractive(),
-      right:this.add.rectangle(118, H - 72, 48, 48, 0x1b1b2f).setAlpha(0.75).setInteractive(),
-      down: this.add.rectangle(70, H - 24, 48, 48, 0x1b1b2f).setAlpha(0.75).setInteractive(),
+      up: this.add.rectangle(70, H - 120, 52, 52, 0x1b1b2f).setAlpha(0.8).setInteractive(),
+      left: this.add.rectangle(22, H - 72, 52, 52, 0x1b1b2f).setAlpha(0.8).setInteractive(),
+      right:this.add.rectangle(118, H - 72, 52, 52, 0x1b1b2f).setAlpha(0.8).setInteractive(),
+      down: this.add.rectangle(70, H - 24, 52, 52, 0x1b1b2f).setAlpha(0.8).setInteractive(),
     };
-    this.add.text(70, H - 120, "↑", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5);
-    this.add.text(22, H - 72, "←", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5);
-    this.add.text(118, H - 72, "→", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5);
-    this.add.text(70, H - 24, "↓", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5);
+    this.add.text(70, H - 120, "↑", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
+    this.add.text(22, H - 72, "←", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
+    this.add.text(118, H - 72, "→", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
+    this.add.text(70, H - 24, "↓", { fontFamily: "Arial", fontSize: "22px", color: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
 
-    ui.btnRun = this.add.rectangle(W - 90, H - 80, 120, 52, 0x1b1b2f).setAlpha(0.78).setInteractive();
-    this.add.text(W - 90, H - 80, "RUN", { fontFamily: "Arial", fontSize: "18px", color: "#fff" }).setOrigin(0.5);
+    ui.btnRun = this.add.rectangle(W - 90, H - 80, 120, 52, 0x1b1b2f).setAlpha(0.82).setInteractive();
+    this.add.text(W - 90, H - 80, "RUN", { fontFamily: "Arial", fontSize: "18px", color: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
 
-    ui.btnHide = this.add.rectangle(W - 90, H - 24, 120, 52, 0x1b1b2f).setAlpha(0.78).setInteractive();
-    this.add.text(W - 90, H - 24, "HIDE", { fontFamily: "Arial", fontSize: "18px", color: "#fff" }).setOrigin(0.5);
+    ui.btnHide = this.add.rectangle(W - 90, H - 24, 120, 52, 0x1b1b2f).setAlpha(0.82).setInteractive();
+    this.add.text(W - 90, H - 24, "HIDE", { fontFamily: "Arial", fontSize: "18px", color: "#fff" }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
 
     ui.state = { up:false, left:false, right:false, down:false, run:false, hideTap:false };
 
@@ -931,25 +1142,23 @@ class RoomScene extends Phaser.Scene {
     bindHold(ui.pad.right, "right");
     bindHold(ui.pad.down, "down");
     bindHold(ui.btnRun, "run");
-
     ui.btnHide.on("pointerdown", () => ui.state.hideTap = true);
 
-    // Fixed to camera
-    Object.values(ui.pad).forEach(o => o.setScrollFactor(0).setDepth(200));
-    ui.btnRun.setScrollFactor(0).setDepth(200);
-    ui.btnHide.setScrollFactor(0).setDepth(200);
+    Object.values(ui.pad).forEach(o => o.setScrollFactor(0).setDepth(300));
+    ui.btnRun.setScrollFactor(0).setDepth(300);
+    ui.btnHide.setScrollFactor(0).setDepth(300);
 
     return ui;
   }
 
   runTutorial() {
     const steps = [
-      "Welcome to the Halloween House! Your mission: find 5 Trick Tokens 🍬",
-      "Hear squeaky shoes? That means Goofy Elephant is nearby!",
-      "Walk to stay quiet. Run (Shift/Run) makes more noise.",
-      "Stand in a hiding spot and press Space/Hide. Hold still a moment… shhh!",
-      "Click to toss a distraction. The elephant loves funny sounds!",
-      "If you get caught, you’ll just get BOOPED and respawn safely. Let’s go!",
+      "Welcome! Find 5 Trick Tokens 🍬",
+      "Elephant is goofy—if it catches you, it just BOOPS you back safely.",
+      "Run is louder (Shift / RUN). Noise makes Elephant investigate!",
+      "Stand in a hide spot and press Hide (Space / HIDE)… hold still to fully hide!",
+      "Tap/click to toss a distraction. Gumdrops recharge distractions!",
+      "Doors + exit: press E (or walk in and press E on desktop). Go go go!",
     ];
     let i = 0;
 
@@ -966,11 +1175,6 @@ class RoomScene extends Phaser.Scene {
 
     next();
 
-    const advance = () => next();
-    this.input.once("pointerdown", advance);
-    this.input.keyboard.once("keydown-SPACE", advance);
-
-    // Keep listening until tutorial is done
     const loop = () => {
       if (this.registry.get("tutorialDone")) return;
       this.input.once("pointerdown", () => { next(); loop(); });
@@ -981,11 +1185,14 @@ class RoomScene extends Phaser.Scene {
 
   update(time, deltaMs) {
     const dt = deltaMs / 1000;
-
-    // Action text clears if not near door/exit
     this.ui.action.setText("");
 
-    // Movement input
+    // Update shadows + mood icon follow
+    this.playerShadow.setPosition(this.player.x, this.player.y + 18);
+    this.elephantShadow.setPosition(this.elephant.x, this.elephant.y + 24);
+    this.eMood.setPosition(this.elephant.x, this.elephant.y - 40);
+
+    // Input
     let ix = 0, iy = 0;
     const touch = this.touchUI?.state;
 
@@ -1000,131 +1207,209 @@ class RoomScene extends Phaser.Scene {
     if (down) iy += 1;
 
     const running = (this.keys.SHIFT.isDown || touch?.run) && !this.playerHidden;
-    const speed = running ? this.diff.playerRun : this.diff.playerWalk;
 
     // Hide toggle
     const wantsHide = Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || (touch?.hideTap);
     if (touch) touch.hideTap = false;
 
     if (wantsHide) {
-      // Can only hide if overlapping a hide zone
-      const canHideHere = this.hideZones.some(z => this.physics.overlap(this.player, z));
-      if (!this.playerHidden && canHideHere) {
+      const inHide = this.hideZones.some(z => this.physics.overlap(this.player, z));
+      if (!this.playerHidden && inHide) {
+        // start hiding (requires settle)
         this.playerHidden = true;
-        this.player.setVelocity(0, 0);
-        this.player.setAlpha(0.35);
-        this.say("Player", "Shhh… hide mode!");
+        this.hideProgress = 0;
+        this.player.body.setVelocity(0, 0);
+        this.player.setAlpha(0.7);
+        this.say("Player", "Okay… hold your giggles!");
       } else if (this.playerHidden) {
+        // unhide
         this.playerHidden = false;
+        this.hideProgress = 0;
         this.player.setAlpha(1);
-        this.say("Player", "Okay… sneaking again!");
+        this.ui.hideBarBg.setAlpha(0);
+        this.ui.hideBar.setAlpha(0);
+        this.say("Player", "Sneak mode!");
       } else {
-        this.say("Narrator", "Find a hiding spot first!");
+        this.say("Narrator", "Hide spots are marked with 🫥");
       }
     }
 
-    // Apply movement (no movement while hidden)
-    if (this.playerHidden) {
-      this.player.setVelocity(0, 0);
-    } else {
+    // Movement physics (smooth acceleration)
+    if (!this.playerHidden) {
+      const speed = running ? this.diff.playerRun : this.diff.playerWalk;
       const v = new Phaser.Math.Vector2(ix, iy);
-      if (v.lengthSq() > 0) v.normalize().scale(speed);
-      this.player.setVelocity(v.x, v.y);
+      if (v.lengthSq() > 0) v.normalize();
+
+      const ax = v.x * this.diff.accel;
+      const ay = v.y * this.diff.accel;
+      this.player.body.setAcceleration(ax, ay);
+      this.player.body.setMaxSpeed(speed);
+    } else {
+      this.player.body.setAcceleration(0, 0);
+      this.player.body.setVelocity(0, 0);
+    }
+
+    // Hide settle meter (must stay still and stay in hide zone)
+    if (this.playerHidden) {
+      const still = this.player.body.velocity.length() < 8;
+      const inHide = this.hideZones.some(z => this.physics.overlap(this.player, z));
+
+      this.ui.hideBarBg.setAlpha(1);
+      this.ui.hideBar.setAlpha(1);
+
+      if (still && inHide) {
+        this.hideProgress = Phaser.Math.Clamp(this.hideProgress + (dt / this.diff.hideSettleTime), 0, 1);
+      } else {
+        this.hideProgress = Phaser.Math.Clamp(this.hideProgress - dt * 1.5, 0, 1);
+      }
+
+      this.ui.hideBar.width = 220 * this.hideProgress;
+      this.ui.hideBar.x = (W / 2 - 110);
+
+      // Fully hidden at 100%
+      if (this.hideProgress >= 1) this.player.setAlpha(0.35);
+      else this.player.setAlpha(0.7);
+    }
+
+    // Running puffs (fun juice)
+    const moving = (ix !== 0 || iy !== 0) && !this.playerHidden;
+    if (running && moving && Math.random() < 0.08) {
+      const puff = this.add.image(this.player.x - ix * 10, this.player.y - iy * 10, "puff").setAlpha(0.35);
+      puff.setScale(0.6);
+      this.tweens.add({
+        targets: puff,
+        scale: 1.3,
+        alpha: 0,
+        duration: 420,
+        onComplete: () => puff.destroy()
+      });
     }
 
     // Noise meter
-    const moving = (ix !== 0 || iy !== 0) && !this.playerHidden;
     if (running && moving) this.noise += this.diff.runNoisePerSec * this.noiseMult * dt;
     else if (moving) this.noise += this.diff.walkNoisePerSec * dt;
     else this.noise -= this.diff.quietRecoverPerSec * dt;
 
     if (this.playerHidden) this.noise -= this.diff.hideRecoverPerSec * dt;
-
     this.noise = Phaser.Math.Clamp(this.noise, 0, 100);
 
-    // If noise gets high, elephant may investigate player area
+    // If noise high, occasionally ping elephant
     if (this.noise >= this.diff.hearThreshold && Math.random() < 0.03) {
       this.postSoundPing(this.player.x, this.player.y, this.noise);
     }
 
-    // AI update
+    // AI
     this.updateElephantAI(dt);
 
-    // UI: noise bar
-    this.ui.noiseBar.width = 2 * this.noise; // 0..200
-    this.ui.noiseBar.x = (W - 220);
+    // Noise bar UI
+    this.ui.noiseBar.width = 2.4 * this.noise; // 0..240
+    this.ui.noiseBar.x = (W - 270);
 
-    // Draw hide spot outlines if Goggles unlocked
+    // Hide outlines if goggles unlocked
     this.hideZoneGraphics.clear();
     const unlocks = this.registry.get("unlocks") || {};
     if (unlocks.goggles) {
-      this.hideZoneGraphics.lineStyle(2, 0x6c6ca8, 0.8);
+      this.hideZoneGraphics.lineStyle(2, 0x6c6ca8, 0.75);
       this.room.hides.forEach(h => {
         this.hideZoneGraphics.strokeRect(h.x - h.w / 2, h.y - h.h / 2, h.w, h.h);
       });
     }
 
-    // Tracker arrow if unlocked
+    // Token tracker arrow (simple)
     if (unlocks.tracker) {
       if (!this._trackerArrow) {
-        this._trackerArrow = this.add.text(W - 40, 70, "➤", { fontFamily: "Arial", fontSize: "28px", color: "#ffffff" }).setScrollFactor(0);
+        this._trackerArrow = this.add.text(W - 40, 110, "➤", { fontFamily: "Arial", fontSize: "28px", color: "#ffffff" }).setScrollFactor(0);
         this._trackerArrow.setAlpha(0.85);
       }
       const t = this.findNearestUncollectedToken();
       if (t) {
         const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, t.x, t.y);
         this._trackerArrow.setRotation(ang);
-      } else {
-        this._trackerArrow.setRotation(0);
       }
     }
+
+    // Lighting: draw darkness + erase spotlight
+    this.darkness.clear();
+    this.darkness.fillStyle(0x000000, 0.50);
+    this.darkness.fillRect(0, 0, W, H);
+
+    this.spot.clear();
+    const r = this.playerHidden ? 85 : (running ? 120 : 105);
+    this.spot.fillStyle(0xffffff, 1);
+    this.spot.fillCircle(this.player.x, this.player.y, r);
+  }
+
+  findNearestUncollectedToken() {
+    const flags = this.registry.get("tokenFlags") || {};
+    let best = null;
+
+    for (let r = 0; r < ROOMS.length; r++) {
+      const room = ROOMS[r];
+      for (const c of room.collectibles) {
+        if (c.type !== "token") continue;
+        if (flags[c.id]) continue;
+
+        const wx = (r === this.roomIndex) ? c.x : (r < this.roomIndex ? 60 : 900);
+        const wy = (r === this.roomIndex) ? c.y : 270;
+        const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, wx, wy);
+        if (!best || d < best.d) best = { x: wx, y: wy, d };
+      }
+    }
+    return best;
   }
 
   updateElephantAI(dt) {
     const ai = this.ai;
 
-    // Occasional funny "tell"
     ai.tellTimer -= dt;
-    if (ai.tellTimer <= 0) {
-      ai.tellTimer = Phaser.Math.FloatBetween(1.6, 3.2);
+    ai.sneezeCooldown = Math.max(ai.sneezeCooldown - dt, 0);
 
-      // ear wiggle = listening mode (we simulate by slightly increasing chance to investigate)
-      if (Math.random() < 0.35) {
-        if (Math.random() < 0.25) this.say("Elephant", "Ears on! I’m listenin’!");
-        // small burst: if player noisy, investigate
-        if (this.noise > this.diff.hearThreshold - 10 && Math.random() < 0.6) {
-          this.postSoundPing(this.player.x, this.player.y, this.noise);
-        }
-      }
+    const sees = this.canSeePlayer() && (!this.playerHidden || this.hideProgress < 1);
 
-      // sniff chance
-      if (Math.random() < this.diff.sniffChancePerSec * 2.0) {
-        if (Math.random() < 0.25) this.say("Elephant", "Sniff sniff…");
-        // If close and player hidden, elephant might "check" but never unfairly:
-        const dist = Phaser.Math.Distance.Between(this.elephant.x, this.elephant.y, this.player.x, this.player.y);
-        if (this.playerHidden && dist < 140 && Math.random() < 0.35) {
-          // gentle "almost found you" moment
-          this.say("Narrator", "The elephant sniffs nearby… stay still!");
-        }
-      }
-
-      // sneeze confetti = pause, good time to run
-      if (Math.random() < 0.2) {
-        this.say("Elephant", "Confetti sneeze! ACHOO!");
-        this.elephant.setVelocity(0, 0);
-        return;
-      }
-    }
-
-    // Vision check
-    const sees = this.canSeePlayer();
     if (sees) {
       ai.state = "CHASE";
       ai.lastSeen = { x: this.player.x, y: this.player.y };
       ai.chaseMemory = 1.8;
+      this.eMood.setText("🏃");
+    }
+
+    // Funny tells
+    if (ai.tellTimer <= 0) {
+      ai.tellTimer = Phaser.Math.FloatBetween(1.6, 3.1);
+
+      // Ear wiggle = listening (slightly more likely to investigate)
+      if (Math.random() < 0.35) {
+        if (Math.random() < 0.35) this.say("Elephant", "Ears on! I’m listenin’!");
+        this.eMood.setText("👂");
+        if (this.noise > this.diff.hearThreshold - 10 && Math.random() < 0.7) {
+          this.postSoundPing(this.player.x, this.player.y, this.noise);
+        }
+      }
+
+      // Sniff tell (adds tension but fair)
+      if (Math.random() < this.diff.sniffChancePerSec * 2.0) {
+        if (Math.random() < 0.3) this.say("Elephant", "Sniff sniff…");
+        if (this.playerHidden && this.hideProgress >= 1) {
+          const dist = Phaser.Math.Distance.Between(this.elephant.x, this.elephant.y, this.player.x, this.player.y);
+          if (dist < 145 && Math.random() < 0.35) {
+            this.say("Narrator", "Stay still… the elephant is sniffing nearby!");
+          }
+        }
+      }
+
+      // Confetti sneeze pause (gives player a chance)
+      if (ai.sneezeCooldown <= 0 && Math.random() < 0.18) {
+        ai.sneezeCooldown = 4.0;
+        this.elephant.setVelocity(0, 0);
+        this.eMood.setText("😮");
+        this.say("Elephant", "Confetti sneeze! ACHOO!");
+        this.popConfetti(this.elephant.x, this.elephant.y, 14);
+        return;
+      }
     }
 
     if (ai.state === "PATROL") {
+      this.eMood.setText("💤");
       const p = ai.patrolPoints[ai.patrolIndex];
       this.moveElephantToward(p.x, p.y, this.diff.elephantPatrolSpeed);
 
@@ -1134,10 +1419,9 @@ class RoomScene extends Phaser.Scene {
     }
 
     if (ai.state === "INVESTIGATE") {
+      this.eMood.setText("🧐");
       const t = ai.investigateTarget;
-      if (t) {
-        this.moveElephantToward(t.x, t.y, this.diff.elephantPatrolSpeed + 10);
-      }
+      if (t) this.moveElephantToward(t.x, t.y, this.diff.elephantPatrolSpeed + 10);
       ai.investigateTimeLeft -= dt;
 
       if (ai.investigateTimeLeft <= 0) {
@@ -1150,7 +1434,6 @@ class RoomScene extends Phaser.Scene {
       if (!sees) {
         ai.chaseMemory -= dt;
         if (ai.chaseMemory <= 0) {
-          // Lost them—investigate last known spot
           ai.state = "INVESTIGATE";
           ai.investigateTarget = ai.lastSeen ? { ...ai.lastSeen } : { x: this.elephant.x, y: this.elephant.y };
           ai.investigateTimeLeft = this.diff.investigateSeconds;
@@ -1158,15 +1441,15 @@ class RoomScene extends Phaser.Scene {
         }
       }
 
-      const tx = this.playerHidden ? (ai.lastSeen?.x ?? this.player.x) : this.player.x;
-      const ty = this.playerHidden ? (ai.lastSeen?.y ?? this.player.y) : this.player.y;
+      const tx = (this.playerHidden && this.hideProgress >= 1) ? (ai.lastSeen?.x ?? this.player.x) : this.player.x;
+      const ty = (this.playerHidden && this.hideProgress >= 1) ? (ai.lastSeen?.y ?? this.player.y) : this.player.y;
+
       this.moveElephantToward(tx, ty, this.diff.elephantChaseSpeed);
 
-      // occasional voice line
       ai.nextVoice -= dt;
       if (ai.nextVoice <= 0) {
-        ai.nextVoice = Phaser.Math.FloatBetween(1.4, 2.8);
-        if (Math.random() < 0.4) this.say("Elephant", randPick(ELEPHANT_LINES));
+        ai.nextVoice = Phaser.Math.FloatBetween(1.3, 2.7);
+        if (Math.random() < 0.45) this.say("Elephant", randPick(ELEPHANT_LINES));
       }
     }
   }
