@@ -1,4 +1,3 @@
-// --- Game Configuration ---
 const config = {
     type: Phaser.AUTO,
     width: 960,
@@ -13,76 +12,83 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-// --- Variables ---
 let player, barnaby, walls, tokens, hideSpots, cursors, ui;
 let noiseLevel = 0;
 let isHidden = false;
 let tokensCollected = 0;
-let aiState = 'PATROL'; // PATROL, INVESTIGATE, CHASE
-let targetPos = { x: 0, y: 0 };
+let canBeBooped = true;
 
 function preload() {
-    // We generate textures procedurally so you don't need external images
+    // We'll create the graphics inside the 'create' function to keep it simple for GitHub
 }
 
 function create() {
-    // 1. Scene setup
-    this.add.rectangle(480, 270, 960, 540, 0x141425); // Dark Blue floor
-    
-    // 2. Obstacles (The Museum Walls)
+    // 1. Background
+    this.add.rectangle(480, 270, 960, 540, 0x1a1a2e);
+
+    // 2. Walls (The Museum)
     walls = this.physics.add.staticGroup();
-    const wallStyles = { fill: 0x23233a, stroke: 0x3b3b5a };
-    
     const createWall = (x, y, w, h) => {
-        let wall = this.add.rectangle(x, y, w, h, wallStyles.fill).setStrokeStyle(2, wallStyles.stroke);
-        this.physics.add.existing(wall, true);
-        walls.add(wall);
+        let wBox = this.add.rectangle(x, y, w, h, 0x2e2e4a).setStrokeStyle(2, 0x4e4e7a);
+        this.physics.add.existing(wBox, true);
+        walls.add(wBox);
     };
 
-    createWall(480, 10, 960, 20);  // Ceiling
-    createWall(480, 530, 960, 20); // Floor
-    createWall(10, 270, 20, 540);  // Left Wall
-    createWall(950, 270, 20, 540); // Right Wall
-    createWall(480, 300, 300, 40); // Center Exhibit
+    createWall(480, 10, 960, 20);  // Top
+    createWall(480, 530, 960, 20); // Bottom
+    createWall(10, 270, 20, 540);  // Left
+    createWall(950, 270, 20, 540); // Right
+    createWall(480, 270, 200, 40); // Center Exhibit
 
-    // 3. Collectibles
-    tokens = this.physics.add.staticGroup();
+    // 3. Hide Spots (The Giant Hats)
+    hideSpots = this.physics.add.staticGroup();
+    let hat = this.add.circle(250, 400, 40, 0x8855cc, 0.5).setStrokeStyle(3, 0xaa88ff);
+    this.add.text(230, 390, "HAT", {fontSize: '14px', color: '#fff'});
+    this.physics.add.existing(hat, true);
+    hideSpots.add(hat);
+
+    // 4. Tokens (Trick Tokens)
+    tokens = this.physics.add.group();
     for(let i=0; i<5; i++) {
-        let t = this.add.circle(Phaser.Math.Between(100, 860), Phaser.Math.Between(100, 440), 10, 0xffa13a);
-        this.physics.add.existing(t, true);
+        let t = this.add.star(Phaser.Math.Between(100, 860), Phaser.Math.Between(100, 440), 5, 8, 15, 0xffcc00);
+        this.physics.add.existing(t);
+        t.body.setImmovable(true);
         tokens.add(t);
     }
 
-    // 4. Hide Spots
-    hideSpots = this.physics.add.staticGroup();
-    let spot = this.add.rectangle(200, 420, 80, 60, 0x6c6ca8, 0.3).setStrokeStyle(2, 0x6c6ca8);
-    this.physics.add.existing(spot, true);
-    hideSpots.add(spot);
+    // 5. Player
+    player = this.physics.add.sprite(100, 100, null).setSize(25, 25);
+    player.setTint(0x00ccff);
+    drawCircle(this, player, 15);
+    player.setCollideWorldBounds(true);
 
-    // 5. Entities
-    player = this.physics.add.sprite(100, 100, null).setSize(26, 26);
-    drawCircleSprite(this, player, 14, 0x9fe2ff); // Light Blue Hero
-    
-    barnaby = this.physics.add.sprite(820, 420, null).setSize(44, 44);
-    drawCircleSprite(this, barnaby, 22, 0xb7b7c9); // Grey Elephant
-    
-    // 6. UI
+    // 6. Barnaby the Elephant
+    barnaby = this.physics.add.sprite(800, 450, null).setSize(45, 45);
+    barnaby.setTint(0xff99cc);
+    drawCircle(this, barnaby, 25);
+    barnaby.setCollideWorldBounds(true);
+
+    // 7. UI
     ui = {
-        score: this.add.text(30, 30, 'Tokens: 0/5', { fontSize: '20px', color: '#fff' }),
-        noiseBarBg: this.add.rectangle(800, 45, 200, 15, 0x222233),
-        noiseBar: this.add.rectangle(700, 45, 0, 11, 0x7f7fff).setOrigin(0, 0.5),
-        status: this.add.text(480, 500, 'Stay Quiet!', { fontSize: '16px', color: '#cfcfe8' }).setOrigin(0.5)
+        score: this.add.text(30, 30, 'Trick Tokens: 0/5', { fontSize: '22px', fill: '#fff' }),
+        noiseLabel: this.add.text(720, 25, 'Giggle Meter', { fontSize: '14px', fill: '#fff' }),
+        noiseBarBg: this.add.rectangle(820, 50, 200, 12, 0x333355),
+        noiseBar: this.add.rectangle(720, 50, 0, 10, 0x00ffcc).setOrigin(0, 0.5),
+        msg: this.add.text(480, 500, 'Find the tokens! Space to hide!', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5)
     };
 
-    // 7. Physics Logic
+    // 8. Collisions & Overlaps
     this.physics.add.collider(player, walls);
     this.physics.add.collider(barnaby, walls);
+    
     this.physics.add.overlap(player, tokens, (p, t) => {
         t.destroy();
         tokensCollected++;
-        ui.score.setText(`Tokens: ${tokensCollected}/5`);
-    }, null, this);
-    this.physics.add.overlap(player, barnaby, onBoop, null, this);
+        ui.score.setText(`Trick Tokens: ${tokensCollected}/5`);
+        if(tokensCollected === 5) ui.msg.setText("YOU GOT THEM ALL! RUN TO THE START!");
+    });
+
+    this.physics.add.overlap(player, barnaby, handleBoop, null, this);
 
     cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,SHIFT');
@@ -91,78 +97,71 @@ function create() {
 function update(time, delta) {
     const dt = delta / 1000;
 
-    // --- Player Movement ---
     if (!isHidden) {
-        let speed = (this.keys.SHIFT.isDown) ? 240 : 160;
+        // Movement
+        let speed = (this.keys.SHIFT.isDown) ? 220 : 140;
         player.body.setVelocity(0);
 
         if (cursors.left.isDown || this.keys.A.isDown) player.body.setVelocityX(-speed);
         else if (cursors.right.isDown || this.keys.D.isDown) player.body.setVelocityX(speed);
-
         if (cursors.up.isDown || this.keys.W.isDown) player.body.setVelocityY(-speed);
         else if (cursors.down.isDown || this.keys.S.isDown) player.body.setVelocityY(speed);
 
-        // Noise Generation
+        // Noise
         if (player.body.velocity.length() > 0) {
-            noiseLevel += (this.keys.SHIFT.isDown ? 40 : 15) * dt;
+            noiseLevel += (this.keys.SHIFT.isDown ? 35 : 12) * dt;
         } else {
-            noiseLevel = Math.max(0, noiseLevel - 25 * dt);
+            noiseLevel = Math.max(0, noiseLevel - 20 * dt);
         }
     }
 
-    // --- Hiding Mechanic ---
-    this.physics.overlap(player, hideSpots, () => {
-        if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
-            toggleHide();
+    // Space to Hide
+    if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
+        let touchingHat = false;
+        this.physics.overlap(player, hideSpots, () => touchingHat = true);
+        
+        if (touchingHat) {
+            isHidden = !isHidden;
+            player.setAlpha(isHidden ? 0.3 : 1);
+            ui.msg.setText(isHidden ? "Hiding... Barnaby can't see you!" : "Sneaking again!");
+            if(isHidden) player.body.setVelocity(0);
         }
-    });
+    }
 
-    // --- Barnaby AI Logic ---
+    // Barnaby AI
     let dist = Phaser.Math.Distance.Between(barnaby.x, barnaby.y, player.x, player.y);
-    
-    if (noiseLevel > 50 && !isHidden) {
-        aiState = 'CHASE';
-        this.physics.moveToObject(barnaby, player, 180);
-        barnaby.setTint(0xffaaaa);
-    } else if (dist < 200 && !isHidden) {
-        aiState = 'CURIOUS';
-        this.physics.moveToObject(barnaby, player, 90);
-        barnaby.setTint(0xffffff);
+    if (!isHidden && (noiseLevel > 40 || dist < 200)) {
+        this.physics.moveToObject(barnaby, player, (noiseLevel > 60) ? 170 : 100);
+        if(dist < 100) ui.msg.setText("HE'S GETTING CLOSE!");
     } else {
-        aiState = 'PATROL';
         barnaby.body.setVelocity(0);
-        barnaby.clearTint();
     }
 
-    // --- UI Update ---
+    // UI Bars
     ui.noiseBar.width = Phaser.Math.Clamp(noiseLevel * 2, 0, 200);
+    if(noiseLevel > 60) ui.noiseBar.setFillStyle(0xff3300);
+    else ui.noiseBar.setFillStyle(0x00ffcc);
 }
 
-function toggleHide() {
-    isHidden = !isHidden;
-    if (isHidden) {
-        player.setAlpha(0.4);
-        player.body.setVelocity(0);
-        noiseLevel = 0;
-    } else {
-        player.setAlpha(1);
-    }
+function handleBoop(p, b) {
+    if (isHidden || !canBeBooped) return;
+
+    canBeBooped = false;
+    alert("BOOP! Barnaby caught you! Back to the start!");
+    
+    // Respawn
+    player.setPosition(100, 100);
+    noiseLevel = 0;
+    
+    // Safety Invincibility for 2 seconds
+    this.time.delayedCall(2000, () => canBeBooped = true);
 }
 
-function onBoop() {
-    if (isHidden) return;
-    alert("BOOP! Barnaby caught you for a hug!");
-    window.location.reload(); // Simple reset for now
-}
-
-function drawCircleSprite(scene, sprite, radius, color) {
+function drawCircle(scene, sprite, radius) {
     let g = scene.add.graphics();
-    g.fillStyle(color, 1);
+    g.fillStyle(0xffffff, 1);
     g.fillCircle(radius, radius, radius);
-    let key = 'circle_' + color;
-    if (!scene.textures.exists(key)) {
-        g.generateTexture(key, radius * 2, radius * 2);
-    }
-    sprite.setTexture(key);
+    g.generateTexture('circle_' + radius, radius * 2, radius * 2);
+    sprite.setTexture('circle_' + radius);
     g.destroy();
 }
