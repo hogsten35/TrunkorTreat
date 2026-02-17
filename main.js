@@ -63,19 +63,45 @@ function create() {
     player.setCollideWorldBounds(true);
 
     // 6. Barnaby the Elephant
-    barnaby = this.physics.add.sprite(800, 450, null).setSize(45, 45);
-    barnaby.setTint(0xff99cc);
-    drawCircle(this, barnaby, 25);
-    barnaby.setCollideWorldBounds(true);
+    // --- Replace your current Barnaby creation in create() with this: ---
+barnaby = this.physics.add.sprite(800, 450, null);
+drawElephant(this, barnaby); // This calls the new function below
+barnaby.setSize(60, 60); 
+barnaby.setCollideWorldBounds(true);
 
-    // 7. UI
-    ui = {
-        score: this.add.text(30, 30, 'Trick Tokens: 0/5', { fontSize: '22px', fill: '#fff' }),
-        noiseLabel: this.add.text(720, 25, 'Giggle Meter', { fontSize: '14px', fill: '#fff' }),
-        noiseBarBg: this.add.rectangle(820, 50, 200, 12, 0x333355),
-        noiseBar: this.add.rectangle(720, 50, 0, 10, 0x00ffcc).setOrigin(0, 0.5),
-        msg: this.add.text(480, 500, 'Find the tokens! Space to hide!', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5)
-    };
+// --- Add/Replace this function at the bottom of your main.js ---
+function drawElephant(scene, sprite) {
+    const size = 64; // Base size for the texture canvas
+    let g = scene.add.graphics();
+
+    // 1. Ears (Big floppy ovals behind the head)
+    g.fillStyle(0xa8a8bf, 1);
+    g.fillEllipse(15, 25, 30, 45); // Left Ear
+    g.fillEllipse(49, 25, 30, 45); // Right Ear
+
+    // 2. Head (Main circle)
+    g.fillStyle(0xb7b7c9, 1);
+    g.fillCircle(32, 32, 22);
+
+    // 3. Trunk (A rounded rectangle sticking out)
+    g.fillStyle(0x9a9ab3, 1);
+    g.fillRoundedRect(27, 35, 10, 25, 5);
+
+    // 4. Eyes (Two silly dots)
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(25, 28, 2.5); // Left Eye
+    g.fillCircle(39, 28, 2.5); // Right Eye
+
+    // 5. Polka Dots (To make him look "Goofy/Fun")
+    g.fillStyle(0xffaaff, 1);
+    g.fillCircle(20, 20, 4);
+    g.fillCircle(45, 40, 3);
+
+    // Generate the texture so Phaser can use it as a sprite
+    g.generateTexture('barnaby_face', size, size);
+    sprite.setTexture('barnaby_face');
+    g.destroy(); // Clean up graphics object to save memory
+}
 
     // 8. Collisions & Overlaps
     this.physics.add.collider(player, walls);
