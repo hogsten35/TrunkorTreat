@@ -1,220 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trunk or Treat: The Boop Chase</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
     <style>
-        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-        canvas { border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        body {
+            margin: 0;
+            background-color: #0b0b12;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            border: 4px solid #2d2d44;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
     </style>
 </head>
 <body>
-    <div id="phaser-game"></div>
-    <script>
-        const config = {
-            type: Phaser.AUTO,
-            width: 800,
-            height: 600,
-            parent: 'phaser-game',
-            physics: {
-                default: 'arcade',
-                arcade: { gravity: { y: 0 }, debug: false }
-            },
-            scene: { preload, create, update }
-        };
-
-        const game = new Phaser.Game(config);
-
-        let player, barnaby, cursors, walls, hideSpots, keys, scoreText, giggleMeter;
-        let giggleLevel = 0;
-        let isHidden = false;
-        let keysCollected = 0;
-
-        function preload() {
-            // We use generated graphics for "Realistic" placeholders
-            // This ensures the game works immediately without external files
-        }
-
-        function create() {
-            // 1. WORLD SETUP
-            this.add.grid(400, 300, 800, 600, 40, 40, 0x111111).setAltFillStyle(0x0a0a0a);
-            
-            walls = this.physics.add.staticGroup();
-            // Create a simple "Museum Layout"
-            createWall(400, 0, 800, 40);   // Top
-            createWall(400, 600, 800, 40); // Bottom
-            createWall(0, 300, 40, 600);   // Left
-            createWall(800, 300, 40, 600); // Right
-            createWall(200, 200, 40, 300); // Inner Wall 1
-            createWall(600, 400, 40, 300); // Inner Wall 2
-
-            // 2. PLAYER SETUP
-            player = this.physics.add.sprite(100, 100, null).setSize(30, 30);
-            drawPlayerSprite(player);
-            player.setCollideWorldBounds(true);
-
-            // 3. BARNABY SETUP (The Elephant)
-            barnaby = this.physics.add.sprite(700, 500, null).setSize(50, 50);
-            drawElephantSprite(barnaby);
-            
-            // 4. OBJECTIVES (Silly Keys)
-            keys = this.physics.add.group();
-            for(let i=0; i<5; i++) {
-                let key = keys.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), null);
-                drawKeySprite(key);
-            }
-
-            // 5. HIDE SPOTS
-            hideSpots = this.physics.add.staticGroup();
-            let spot = hideSpots.create(400, 300, null).setSize(60, 60);
-            drawHideSpotSprite(spot);
-
-            // 6. UI & LIGHTING
-            scoreText = this.add.text(20, 20, 'Silly Keys: 0/5', { fontSize: '20px', fill: '#fff', backgroundColor: '#000' });
-            giggleMeter = this.add.graphics();
-            
-            // Overlay for "Horror" Lighting
-            const shadow = this.add.graphics();
-            shadow.fillStyle(0x000000, 0.4);
-            shadow.fillRect(0, 0, 800, 600);
-
-            // 7. INPUTS
-            cursors = this.input.keyboard.createCursorKeys();
-            this.physics.add.collider(player, walls);
-            this.physics.add.collider(barnaby, walls);
-            this.physics.add.overlap(player, keys, collectKey, null, this);
-            this.physics.add.overlap(player, barnaby, handleBoop, null, this);
-        }
-
-        function update() {
-            if (isHidden) {
-                player.setVelocity(0);
-                giggleLevel = Math.max(0, giggleLevel - 0.5);
-                if (Phaser.Input.Keyboard.JustDown(cursors.space)) {
-                    exitHide();
-                }
-                return;
-            }
-
-            // PLAYER MOVEMENT
-            let speed = 160;
-            player.setVelocity(0);
-
-            if (cursors.left.isDown) player.setVelocityX(-speed);
-            else if (cursors.right.isDown) player.setVelocityX(speed);
-            
-            if (cursors.up.isDown) player.setVelocityY(-speed);
-            else if (cursors.down.isDown) player.setVelocityY(speed);
-
-            // GIGGLE METER LOGIC
-            if (player.body.velocity.x !== 0 || player.body.velocity.y !== 0) {
-                giggleLevel += 0.2;
-            } else {
-                giggleLevel = Math.max(0, giggleLevel - 0.1);
-            }
-
-            // HIDING LOGIC
-            this.physics.overlap(player, hideSpots, (p, spot) => {
-                if (Phaser.Input.Keyboard.JustDown(cursors.space)) {
-                    enterHide();
-                }
-            });
-
-            // BARNABY AI (The "Realistic" Part)
-            // If giggle is high, Barnaby charges!
-            let distToPlayer = Phaser.Math.Distance.Between(barnaby.x, barnaby.y, player.x, player.y);
-            
-            if (giggleLevel > 20 && !isHidden) {
-                this.physics.moveToObject(barnaby, player, 120);
-                barnaby.setTint(0xff0000); // He's excited!
-            } else if (distToPlayer < 200 && !isHidden) {
-                this.physics.moveToObject(barnaby, player, 80);
-                barnaby.setTint(0xffffff);
-            } else {
-                // Idle wandering
-                barnaby.setVelocity(0);
-                barnaby.setTint(0xaaaaaa);
-            }
-
-            updateUI();
-        }
-
-        // --- GAMEPLAY FUNCTIONS ---
-
-        function enterHide() {
-            isHidden = true;
-            player.setAlpha(0.5);
-            console.log("Hidden in a Hat!");
-        }
-
-        function exitHide() {
-            isHidden = false;
-            player.setAlpha(1);
-        }
-
-        function collectKey(player, key) {
-            key.disableBody(true, true);
-            keysCollected++;
-            if(keysCollected >= 5) scoreText.setText("ESCAPE TO THE EXIT!");
-        }
-
-        function handleBoop() {
-            if (isHidden) return;
-            alert("BOOP! Barnaby caught you!");
-            giggleLevel = 0;
-            player.setPosition(100, 100);
-        }
-
-        function updateUI() {
-            scoreText.setText(`Silly Keys: ${keysCollected}/5 | Space to Hide`);
-            giggleMeter.clear();
-            giggleMeter.fillStyle(0x00ff00, 1);
-            giggleMeter.fillRect(20, 50, giggleLevel * 5, 10);
-        }
-
-        // --- GRAPHICS HELPERS ---
-        function createWall(x, y, w, h) {
-            let wall = walls.create(x, y, null).setSize(w, h);
-            let g = game.scene.scenes[0].add.graphics();
-            g.fillStyle(0x333344, 1);
-            g.fillRect(x - w/2, y - h/2, w, h);
-        }
-
-        function drawPlayerSprite(sprite) {
-            let g = game.scene.scenes[0].make.graphics({x: 0, y: 0, add: false});
-            g.fillStyle(0x00aaff, 1);
-            g.fillCircle(15, 15, 15);
-            g.generateTexture('playerTex', 30, 30);
-            sprite.setTexture('playerTex');
-        }
-
-        function drawElephantSprite(sprite) {
-            let g = game.scene.scenes[0].make.graphics({x: 0, y: 0, add: false});
-            g.fillStyle(0xffaaff, 1);
-            g.fillEllipse(25, 25, 50, 40);
-            g.fillStyle(0x000000, 1);
-            g.fillCircle(15, 20, 3); // Eyes
-            g.fillCircle(35, 20, 3);
-            g.generateTexture('elephantTex', 50, 50);
-            sprite.setTexture('elephantTex');
-        }
-
-        function drawKeySprite(sprite) {
-            let g = game.scene.scenes[0].make.graphics({x: 0, y: 0, add: false});
-            g.fillStyle(0xffff00, 1);
-            g.fillRect(0, 0, 10, 20);
-            g.generateTexture('keyTex', 10, 20);
-            sprite.setTexture('keyTex');
-        }
-
-        function drawHideSpotSprite(sprite) {
-            let g = game.scene.scenes[0].make.graphics({x: 0, y: 0, add: false});
-            g.lineStyle(2, 0xffffff, 1);
-            g.strokeRect(0, 0, 60, 60);
-            g.add.text(5, 20, "HAT", {fontSize: '12px'});
-            g.generateTexture('hideTex', 60, 60);
-            sprite.setTexture('hideTex');
-        }
-
-    </script>
+    <div id="game-container"></div>
+    <script src="main.js"></script>
 </body>
 </html>
