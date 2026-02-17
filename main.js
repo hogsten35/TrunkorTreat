@@ -1,3 +1,8 @@
+/**
+ * TRUNK OR TREAT: THE BOOP CHASE
+ * A kid-friendly "fun horror" game.
+ */
+
 const config = {
     type: Phaser.AUTO,
     width: 960,
@@ -19,14 +24,14 @@ let tokensCollected = 0;
 let canBeBooped = true;
 
 function preload() {
-    // We'll create the graphics inside the 'create' function to keep it simple for GitHub
+    // Graphics are generated procedurally in create()
 }
 
 function create() {
-    // 1. Background
+    // 1. Background (Dark Midnight Museum)
     this.add.rectangle(480, 270, 960, 540, 0x1a1a2e);
 
-    // 2. Walls (The Museum)
+    // 2. Walls (The Museum Exhibits)
     walls = this.physics.add.staticGroup();
     const createWall = (x, y, w, h) => {
         let wBox = this.add.rectangle(x, y, w, h, 0x2e2e4a).setStrokeStyle(2, 0x4e4e7a);
@@ -38,72 +43,58 @@ function create() {
     createWall(480, 530, 960, 20); // Bottom
     createWall(10, 270, 20, 540);  // Left
     createWall(950, 270, 20, 540); // Right
-    createWall(480, 270, 200, 40); // Center Exhibit
+    createWall(480, 270, 220, 40); // Center Fossil Exhibit
 
-    // 3. Hide Spots (The Giant Hats)
+    // 3. Hide Spots (Giant Polka-Dot Hats)
     hideSpots = this.physics.add.staticGroup();
-    let hat = this.add.circle(250, 400, 40, 0x8855cc, 0.5).setStrokeStyle(3, 0xaa88ff);
-    this.add.text(230, 390, "HAT", {fontSize: '14px', color: '#fff'});
-    this.physics.add.existing(hat, true);
-    hideSpots.add(hat);
+    const spawnHideSpot = (x, y) => {
+        let hat = this.add.circle(x, y, 40, 0x8855cc, 0.6).setStrokeStyle(3, 0xaa88ff);
+        this.add.text(x - 15, y - 10, "HAT", { fontSize: '14px', fontStyle: 'bold', fill: '#fff' });
+        this.physics.add.existing(hat, true);
+        hideSpots.add(hat);
+    };
+    spawnHideSpot(250, 400);
+    spawnHideSpot(700, 150);
 
-    // 4. Tokens (Trick Tokens)
+    // 4. Tokens (Shiny Trick Tokens)
     tokens = this.physics.add.group();
     for(let i=0; i<5; i++) {
         let t = this.add.star(Phaser.Math.Between(100, 860), Phaser.Math.Between(100, 440), 5, 8, 15, 0xffcc00);
         this.physics.add.existing(t);
         t.body.setImmovable(true);
         tokens.add(t);
+        
+        // Make tokens bob up and down
+        this.tweens.add({
+            targets: t,
+            y: t.y - 10,
+            duration: 800 + (i * 100),
+            yoyo: true,
+            repeat: -1
+        });
     }
 
-    // 5. Player
+    // 5. Player (The Brave Giggler)
     player = this.physics.add.sprite(100, 100, null).setSize(25, 25);
-    player.setTint(0x00ccff);
-    drawCircle(this, player, 15);
+    drawPlayer(this, player);
     player.setCollideWorldBounds(true);
 
-    // 6. Barnaby the Elephant
-    // --- Replace your current Barnaby creation in create() with this: ---
-barnaby = this.physics.add.sprite(800, 450, null);
-drawElephant(this, barnaby); // This calls the new function below
-barnaby.setSize(60, 60); 
-barnaby.setCollideWorldBounds(true);
+    // 6. Barnaby (The Goofy Elephant)
+    barnaby = this.physics.add.sprite(800, 450, null);
+    drawElephant(this, barnaby);
+    barnaby.setSize(50, 50); // Collision box
+    barnaby.setCollideWorldBounds(true);
 
-// --- Add/Replace this function at the bottom of your main.js ---
-function drawElephant(scene, sprite) {
-    const size = 64; // Base size for the texture canvas
-    let g = scene.add.graphics();
+    // 7. UI System
+    ui = {
+        score: this.add.text(30, 30, 'Trick Tokens: 0/5', { fontSize: '22px', fill: '#fff' }),
+        noiseLabel: this.add.text(720, 25, 'Giggle Meter', { fontSize: '14px', fill: '#fff' }),
+        noiseBarBg: this.add.rectangle(820, 50, 200, 12, 0x333355),
+        noiseBar: this.add.rectangle(720, 50, 0, 10, 0x00ffcc).setOrigin(0, 0.5),
+        msg: this.add.text(480, 500, 'Find the tokens! Space to hide!', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5)
+    };
 
-    // 1. Ears (Big floppy ovals behind the head)
-    g.fillStyle(0xa8a8bf, 1);
-    g.fillEllipse(15, 25, 30, 45); // Left Ear
-    g.fillEllipse(49, 25, 30, 45); // Right Ear
-
-    // 2. Head (Main circle)
-    g.fillStyle(0xb7b7c9, 1);
-    g.fillCircle(32, 32, 22);
-
-    // 3. Trunk (A rounded rectangle sticking out)
-    g.fillStyle(0x9a9ab3, 1);
-    g.fillRoundedRect(27, 35, 10, 25, 5);
-
-    // 4. Eyes (Two silly dots)
-    g.fillStyle(0x000000, 1);
-    g.fillCircle(25, 28, 2.5); // Left Eye
-    g.fillCircle(39, 28, 2.5); // Right Eye
-
-    // 5. Polka Dots (To make him look "Goofy/Fun")
-    g.fillStyle(0xffaaff, 1);
-    g.fillCircle(20, 20, 4);
-    g.fillCircle(45, 40, 3);
-
-    // Generate the texture so Phaser can use it as a sprite
-    g.generateTexture('barnaby_face', size, size);
-    sprite.setTexture('barnaby_face');
-    g.destroy(); // Clean up graphics object to save memory
-}
-
-    // 8. Collisions & Overlaps
+    // 8. Collisions & Interactions
     this.physics.add.collider(player, walls);
     this.physics.add.collider(barnaby, walls);
     
@@ -124,7 +115,7 @@ function update(time, delta) {
     const dt = delta / 1000;
 
     if (!isHidden) {
-        // Movement
+        // Player Movement
         let speed = (this.keys.SHIFT.isDown) ? 220 : 140;
         player.body.setVelocity(0);
 
@@ -133,61 +124,114 @@ function update(time, delta) {
         if (cursors.up.isDown || this.keys.W.isDown) player.body.setVelocityY(-speed);
         else if (cursors.down.isDown || this.keys.S.isDown) player.body.setVelocityY(speed);
 
-        // Noise
+        // Noise Logic (Giggle Meter)
         if (player.body.velocity.length() > 0) {
-            noiseLevel += (this.keys.SHIFT.isDown ? 35 : 12) * dt;
+            noiseLevel += (this.keys.SHIFT.isDown ? 40 : 15) * dt;
         } else {
             noiseLevel = Math.max(0, noiseLevel - 20 * dt);
         }
     }
 
-    // Space to Hide
+    // Space to Hide Toggle
     if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
         let touchingHat = false;
         this.physics.overlap(player, hideSpots, () => touchingHat = true);
         
         if (touchingHat) {
             isHidden = !isHidden;
-            player.setAlpha(isHidden ? 0.3 : 1);
+            player.setAlpha(isHidden ? 0.2 : 1);
             ui.msg.setText(isHidden ? "Hiding... Barnaby can't see you!" : "Sneaking again!");
             if(isHidden) player.body.setVelocity(0);
+        } else if (!isHidden) {
+            ui.msg.setText("You need to be under a Hat to hide!");
         }
     }
 
-    // Barnaby AI
+    // Barnaby AI & Wiggle
     let dist = Phaser.Math.Distance.Between(barnaby.x, barnaby.y, player.x, player.y);
-    if (!isHidden && (noiseLevel > 40 || dist < 200)) {
-        this.physics.moveToObject(barnaby, player, (noiseLevel > 60) ? 170 : 100);
-        if(dist < 100) ui.msg.setText("HE'S GETTING CLOSE!");
+    
+    if (!isHidden && (noiseLevel > 45 || dist < 220)) {
+        // Chase Behavior
+        let chaseSpeed = (noiseLevel > 65) ? 175 : 105;
+        this.physics.moveToObject(barnaby, player, chaseSpeed);
+        
+        // Elephant Trunk Wiggle Animation
+        barnaby.angle = Math.sin(time * 0.01) * 5; 
+        
+        if(dist < 120) ui.msg.setText("WATCH OUT! HE WANTS A HUG!");
     } else {
+        // Patrol/Idle
         barnaby.body.setVelocity(0);
+        barnaby.angle = 0;
     }
 
-    // UI Bars
+    // Update UI
     ui.noiseBar.width = Phaser.Math.Clamp(noiseLevel * 2, 0, 200);
-    if(noiseLevel > 60) ui.noiseBar.setFillStyle(0xff3300);
-    else ui.noiseBar.setFillStyle(0x00ffcc);
+    ui.noiseBar.setFillStyle(noiseLevel > 60 ? 0xff3300 : 0x00ffcc);
 }
 
 function handleBoop(p, b) {
     if (isHidden || !canBeBooped) return;
 
     canBeBooped = false;
-    alert("BOOP! Barnaby caught you! Back to the start!");
+    ui.msg.setText("BOOP! Hug respawn!");
     
-    // Respawn
+    // Camera shake for fun
+    this.cameras.main.shake(200, 0.01);
+    
+    // Respawn to start
     player.setPosition(100, 100);
     noiseLevel = 0;
     
-    // Safety Invincibility for 2 seconds
-    this.time.delayedCall(2000, () => canBeBooped = true);
+    // Safety delay
+    this.time.delayedCall(2000, () => {
+        canBeBooped = true;
+        ui.msg.setText("Find the tokens!");
+    });
 }
 
-function drawCircle(scene, sprite, radius) {
+// --- VISUAL GENERATORS ---
+
+function drawPlayer(scene, sprite) {
     let g = scene.add.graphics();
-    g.fillStyle(0xffffff, 1);
-    g.fillCircle(radius, radius, radius);
-    g.generateTexture('circle_' + radius, radius * 2, radius * 2);
-    sprite.setTexture('circle_' + radius);
+    g.fillStyle(0x9fe2ff, 1);
+    g.fillCircle(15, 15, 14);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(10, 12, 2); // Eye L
+    g.fillCircle(20, 12, 2); // Eye R
+    g.generateTexture('player_body', 30, 30);
+    sprite.setTexture('player_body');
+    g.destroy();
+}
+
+function drawElephant(scene, sprite) {
+    const size = 64;
+    let g = scene.add.graphics();
+
+    // Ears
+    g.fillStyle(0xa8a8bf, 1);
+    g.fillEllipse(15, 25, 30, 45); 
+    g.fillEllipse(49, 25, 30, 45); 
+
+    // Head
+    g.fillStyle(0xb7b7c9, 1);
+    g.fillCircle(32, 32, 22);
+
+    // Trunk
+    g.fillStyle(0x9a9ab3, 1);
+    g.fillRoundedRect(27, 35, 10, 25, 5);
+
+    // Eyes
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(25, 28, 2.5); 
+    g.fillCircle(39, 28, 2.5); 
+
+    // Polka Dots
+    g.fillStyle(0xffaaff, 1);
+    g.fillCircle(20, 20, 4);
+    g.fillCircle(45, 40, 3);
+
+    g.generateTexture('elephant_body', size, size);
+    sprite.setTexture('elephant_body');
     g.destroy();
 }
